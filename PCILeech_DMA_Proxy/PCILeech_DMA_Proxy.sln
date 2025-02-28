@@ -5,6 +5,10 @@ VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PCILeech_DMA_Proxy", "PCILeech_DMA_Proxy\PCILeech_DMA_Proxy.vcxproj", "{422836ED-AF42-4B8F-BAE2-2B41040190F9}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SampleMemoryReader", "SampleMemoryReader\SampleMemoryReader.vcxproj", "{90AA973B-4FAB-4716-83C3-B03A77AB203B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProxyLoader", "ProxyLoader\ProxyLoader.vcxproj", "{8B593015-4C5E-47AF-943E-A78CB06FEB61}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +25,22 @@ Global
 		{422836ED-AF42-4B8F-BAE2-2B41040190F9}.Release|x64.Build.0 = Release|x64
 		{422836ED-AF42-4B8F-BAE2-2B41040190F9}.Release|x86.ActiveCfg = Release|Win32
 		{422836ED-AF42-4B8F-BAE2-2B41040190F9}.Release|x86.Build.0 = Release|Win32
+		{90AA973B-4FAB-4716-83C3-B03A77AB203B}.Debug|x64.ActiveCfg = Debug|x64
+		{90AA973B-4FAB-4716-83C3-B03A77AB203B}.Debug|x64.Build.0 = Debug|x64
+		{90AA973B-4FAB-4716-83C3-B03A77AB203B}.Debug|x86.ActiveCfg = Debug|Win32
+		{90AA973B-4FAB-4716-83C3-B03A77AB203B}.Debug|x86.Build.0 = Debug|Win32
+		{90AA973B-4FAB-4716-83C3-B03A77AB203B}.Release|x64.ActiveCfg = Release|x64
+		{90AA973B-4FAB-4716-83C3-B03A77AB203B}.Release|x64.Build.0 = Release|x64
+		{90AA973B-4FAB-4716-83C3-B03A77AB203B}.Release|x86.ActiveCfg = Release|Win32
+		{90AA973B-4FAB-4716-83C3-B03A77AB203B}.Release|x86.Build.0 = Release|Win32
+		{8B593015-4C5E-47AF-943E-A78CB06FEB61}.Debug|x64.ActiveCfg = Debug|x64
+		{8B593015-4C5E-47AF-943E-A78CB06FEB61}.Debug|x64.Build.0 = Debug|x64
+		{8B593015-4C5E-47AF-943E-A78CB06FEB61}.Debug|x86.ActiveCfg = Debug|Win32
+		{8B593015-4C5E-47AF-943E-A78CB06FEB61}.Debug|x86.Build.0 = Debug|Win32
+		{8B593015-4C5E-47AF-943E-A78CB06FEB61}.Release|x64.ActiveCfg = Release|x64
+		{8B593015-4C5E-47AF-943E-A78CB06FEB61}.Release|x64.Build.0 = Release|x64
+		{8B593015-4C5E-47AF-943E-A78CB06FEB61}.Release|x86.ActiveCfg = Release|Win32
+		{8B593015-4C5E-47AF-943E-A78CB06FEB61}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

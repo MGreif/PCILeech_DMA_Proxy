@@ -42,7 +42,7 @@ DWORD WINAPI startThread() {
         return 1;
     }
     printf("Hooks initialized\n");
-    if (!MemoryHooks::Init()) {
+    if (!Setup::Init()) {
         printf("Could not initialize DMA\n");
         return 1;
     }

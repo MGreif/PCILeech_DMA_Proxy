@@ -27,7 +27,7 @@ namespace ProcessHooks
 	{
 		info = NULL;
 		count_processes = 0;
-		if (!VMMDLL_ProcessGetInformationAll(MemoryHooks::vHandle, &info, &count_processes))
+		if (!VMMDLL_ProcessGetInformationAll(Setup::vHandle, &info, &count_processes))
 			return false;
 		lppe->dwSize = sizeof(PROCESSENTRY32);
 		lppe->th32ParentProcessID = info[current_process].dwPPID;
@@ -57,7 +57,7 @@ namespace ProcessHooks
 
 
 
-namespace MemoryHooks {
+namespace Setup {
 
 	bool SetFPGA()
 	{
@@ -113,16 +113,7 @@ namespace MemoryHooks {
 			std::string path = "";
 			
 
-			try
-			{
-				vHandle = VMMDLL_Initialize(argc, args);
-
-			}
-			catch (const std::exception&)
-			{
-				printf("ERRRRR");
-			}
-
+			vHandle = VMMDLL_Initialize(argc, args);
 			if (!vHandle)
 			{
 				printf("[!] Initialization failed! Is the DMA in use or disconnected?\n");
@@ -156,5 +147,5 @@ namespace MemoryHooks {
 }
 
 BOOL __declspec(dllexport) initDMA() {
-	return MemoryHooks::Init();
+	return Setup::Init();
 }
