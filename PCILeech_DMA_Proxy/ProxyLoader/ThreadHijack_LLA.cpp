@@ -59,9 +59,6 @@ size_t buildShellCode(char outBuffer[], size_t outBufferSize, DWORD64* pDllPath,
     DWORD upperEIP = *pSavedEIP >> 32;
     DWORD lowerEIP = *pSavedEIP & 0xFFFFFFFF;
 
-    printf("upperEIP: 0x%x\n", upperEIP);
-    printf("lowerEIP: 0x%x\n", lowerEIP);
-
     memcpy_s(&ShellCode[7], 4,&upperEIP , 4);
     memcpy_s(&ShellCode[18], 4, &lowerEIP, 4);
     memcpy_s(&ShellCode[27], 8, pDllPath, 8);

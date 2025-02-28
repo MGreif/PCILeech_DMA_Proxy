@@ -44,9 +44,9 @@ DWORD WINAPI startThread() {
     printf("Hooks initialized\n");
     if (!Setup::Init()) {
         printf("Could not initialize DMA\n");
-        return 1;
+        return 0;
     }
 
 
-    return 1;
+    return 0;
 }

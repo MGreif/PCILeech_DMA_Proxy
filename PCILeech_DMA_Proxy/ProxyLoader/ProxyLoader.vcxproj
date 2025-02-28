@@ -131,10 +131,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CreateRemoteThreadEx_LLA.cpp" />
     <ClCompile Include="ProxyLoader.cpp" />
     <ClCompile Include="ThreadHijack_LLA.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CreateRemoteThreadEx_LLA.h" />
     <ClInclude Include="libs\hooks.h" />
     <ClInclude Include="libs\leechcore.h" />
     <ClInclude Include="libs\ntdll.h" />

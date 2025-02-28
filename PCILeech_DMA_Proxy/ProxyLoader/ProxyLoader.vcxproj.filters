@@ -21,6 +21,9 @@
     <ClCompile Include="ThreadHijack_LLA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CreateRemoteThreadEx_LLA.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libs\hooks.h">
@@ -39,6 +42,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="libs\vmm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CreateRemoteThreadEx_LLA.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

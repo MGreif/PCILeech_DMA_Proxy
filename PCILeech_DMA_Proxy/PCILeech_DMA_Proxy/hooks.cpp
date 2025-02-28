@@ -106,7 +106,7 @@ namespace Setup {
 			args[argc++] = const_cast<LPCSTR>("-printf");
 
 #endif //  _DEBUG
-			args[argc++] = const_cast<LPCSTR>("-waitinitialize");
+		//	args[argc++] = const_cast<LPCSTR>("-waitinitialize");
 
 
 
@@ -129,7 +129,7 @@ namespace Setup {
 			printf("DEVICE ID: %llu\n", DEVICE_ID);
 			printf("success!\n");
 
-			if (SetFPGA())
+			if (!SetFPGA())
 			{
 				printf("[!] Could not set FPGA!\n");
 				VMMDLL_Close(vHandle);
