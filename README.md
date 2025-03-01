@@ -1,4 +1,4 @@
-# PCILeech_DMA_Proxy
+# PCILeech_DMA_Proxy (WIP)
 
 > This project reuses most of the logic coming from a DMA Cheat-Engine plugin, so credits go to the original creator of the DMA library (there are so many forks).
 
@@ -65,7 +65,7 @@ A small DWORD memory reader for testing purposes.
 2. Build DMA Library in Release x64
     - Should create a folder $(SolutionDir)\lib
 3. Build PCILeech_DMA_Proxy in Release x64
-    - Should create a DLL & .lib in the target folder ($(SolutionDir)\x64\Release)
+    - Should create a DLL in the target folder ($(SolutionDir)\x64\Release)
 
 [Optional]
 - Build ProxyLoader in Release x64

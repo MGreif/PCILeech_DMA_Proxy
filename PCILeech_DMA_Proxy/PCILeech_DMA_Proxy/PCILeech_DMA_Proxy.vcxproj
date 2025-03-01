@@ -120,11 +120,12 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).lib $(SolutionDir)ProxyLoader\libs
-xcopy /Y $(ProjectDir)hooks.h $(SolutionDir)ProxyLoader\libs</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <PostBuildEvent>
-      <Message>Copy the built lib into ProxyLoader's libs dir</Message>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -154,8 +155,10 @@ xcopy /Y $(ProjectDir)hooks.h $(SolutionDir)ProxyLoader\libs</Command>
       <AdditionalDependencies>$(CoreLibraryDependencies);$(SolutionDir)lib\DMALibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).lib $(SolutionDir)ProxyLoader\libs</Command>
-      <Message>Copy the built lib into ProxyLoader's libs dir</Message>
+      <Command>
+      </Command>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

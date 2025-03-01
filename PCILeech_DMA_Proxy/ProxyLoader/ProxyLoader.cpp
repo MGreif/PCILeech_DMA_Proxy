@@ -90,7 +90,6 @@ int main(int argc, char** argv)
 
 
     Sleep(5000); // Small wait for DMA setup
-    MessageBoxA(NULL, "Click to continue", "Click to continue", MB_OK);
     if (!ResumeThread(proc.hThread)) {
         error("Could not resume thread\n");
         exit(1);
