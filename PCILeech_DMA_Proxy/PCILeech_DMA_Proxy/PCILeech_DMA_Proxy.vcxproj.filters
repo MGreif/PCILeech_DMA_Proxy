@@ -18,7 +18,16 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="hooks.cpp">
+    <ClCompile Include="Hooks\mem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooks\module.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooks\process.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooks\threads.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,13 +38,19 @@
     <Library Include="libs\vmm.lib" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="hooks.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="libs\leechcore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="libs\vmm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\hooks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\memmy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\vad.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

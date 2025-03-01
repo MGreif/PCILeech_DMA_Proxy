@@ -18,6 +18,7 @@ int main(int argc, char** argv)
 	HANDLE hProcess = OpenProcess(PROCESS_VM_READ, 0, pid);
 	DWORD out;
 	if (!ReadProcessMemory(hProcess, vaddr, &out, sizeof(DWORD), NULL)) {
+
 		printf("[!] Failed reading memory ...\n");
 		exit(1);
 	}

@@ -86,15 +86,15 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    MessageBoxA(NULL, "Ready to resume", "Click to resume", MB_OK);
+    info("Resuming process in 5 seconds...\n");
 
+
+    Sleep(5000); // Small wait for DMA setup
+    MessageBoxA(NULL, "Click to continue", "Click to continue", MB_OK);
     if (!ResumeThread(proc.hThread)) {
         error("Could not resume thread\n");
         exit(1);
     }
-
-    info("Successfully resumes program\n");
-    info("DLL should now be loaded\n");
 
     WaitForSingleObject(proc.hProcess, INFINITE);
 

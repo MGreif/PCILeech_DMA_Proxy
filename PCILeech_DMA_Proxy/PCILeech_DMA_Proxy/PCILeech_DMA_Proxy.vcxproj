@@ -139,7 +139,10 @@ xcopy /Y $(ProjectDir)hooks.h $(SolutionDir)ProxyLoader\libs</Command>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(projectDir)libs;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)lib;$(projectDir)libs;%(AdditionalIncludeDirectories);$(SolutionDir);$(projectDir)</AdditionalIncludeDirectories>
+      <AdditionalHeaderUnitDependencies>
+      </AdditionalHeaderUnitDependencies>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,6 +150,8 @@ xcopy /Y $(ProjectDir)hooks.h $(SolutionDir)ProxyLoader\libs</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalLibraryDirectories>$(SolutionDir)lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);$(SolutionDir)lib\DMALibrary.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y $(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName).lib $(SolutionDir)ProxyLoader\libs</Command>
@@ -155,7 +160,10 @@ xcopy /Y $(ProjectDir)hooks.h $(SolutionDir)ProxyLoader\libs</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="hooks.cpp" />
+    <ClCompile Include="Hooks\mem.cpp" />
+    <ClCompile Include="Hooks\module.cpp" />
+    <ClCompile Include="Hooks\process.cpp" />
+    <ClCompile Include="Hooks\threads.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="libs\leechcore.lib" />
@@ -164,9 +172,11 @@ xcopy /Y $(ProjectDir)hooks.h $(SolutionDir)ProxyLoader\libs</Command>
     <Library Include="libs\vmm.lib" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="hooks.h" />
+    <ClInclude Include="Hooks\hooks.h" />
     <ClInclude Include="libs\leechcore.h" />
     <ClInclude Include="libs\vmm.h" />
+    <ClInclude Include="Memory\memmy.h" />
+    <ClInclude Include="Memory\vad.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
