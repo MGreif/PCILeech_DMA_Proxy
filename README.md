@@ -51,12 +51,31 @@ Currently it uses `CreateRemoteThreadEx` to remote execute and `LoadLibraryA` to
 
 #### Usage:
 
-- `ProxyLoader.exe <path-to-proxy-dll> <program> [...args]`
+- `ProxyLoader.exe <aboslute-path-to-proxy-dll> <absoluet-path-program> [...args]`
 
 
 ### SampleMemoryReader
 
 A small DWORD memory reader for testing purposes.
+
+# How to build
+
+0. Check out this repo
+1. Open the solution
+2. Build DMA Library in Release x64
+    - Should create a folder $(SolutionDir)\lib
+3. Build PCILeech_DMA_Proxy in Release x64
+    - Should create a DLL & .lib in the target folder ($(SolutionDir)\x64\Release)
+
+[Optional]
+- Build ProxyLoader in Release x64
+- Build SampleMemoryReader in Release x64
+
+Run the test:
+- Plug in DMA
+- Start target process (target pc)
+- Use CE or w/e to get your desired vaddr (i used assault cube ammo)
+- `ProxyLoader.exe <absolute-path-built-dll> <absolute-path-sample-reader> <pid> <vaddr>`
 
 # Important
 
