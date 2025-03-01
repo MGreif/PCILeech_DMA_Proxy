@@ -83,6 +83,14 @@ The injected DLL will load `VMM.dll`, `leechcore.dll` and `FTD3XX.dll`. Thus you
 You can get those DLL's in the [MemProcFS](https://github.com/ufrisk/MemProcFS) GitHub repository.
 
 
+# Disclaimer
+
+This software is designed strictly for educational and forensic research purposes. Its primary intent is to help users understand system behavior, memory analysis, and related security concepts.
+
+I do not condone, support, or encourage cheating, game exploitation, or any violation of a game's Terms of Service (TOS), End User License Agreement (EULA), or other legal agreements. Misusing this tool to gain an unfair advantage in online or offline environments may result in account bans, legal consequences, or other penalties.
+
+By using this software, you acknowledge that you are solely responsible for how you use it. The developer holds no liability for any misuse or consequences that arise from improper application of this tool.
+
 # Credits
 
 Thanks again to @ulfrisk for your amazing work on [PCILeech](https://github.com/ufrisk/pcileech), [MemProcFS](https://github.com/ufrisk/MemProcFS) and [pcileech-fpga](https://github.com/ufrisk/pcileech-fpga). This is such a powerful tool for forensics and offensive (pentest/red-team) duty.
