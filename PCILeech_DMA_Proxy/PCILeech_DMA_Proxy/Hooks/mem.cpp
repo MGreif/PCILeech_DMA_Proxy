@@ -213,21 +213,5 @@ namespace Hooks
 			return sizeof(meminfo);
 		}
 		return sizeof(info);
-
-		//Sleep(500);
-
-		/*VirtualQueryEx(hProcess, lpAddress, &meminfo2, dwLength);
-		printf("----------------------------------------------\n");
-		printf("BaseAddress: 0x%p -> 0x%p\n", meminfo2.BaseAddress, meminfo.BaseAddress);
-		printf("AllocationBase: 0x%p -> 0x%p\n", meminfo2.AllocationBase, meminfo.AllocationBase);
-		printf("AllocationProtect: 0x%p -> 0x%p\n", meminfo2.AllocationProtect, meminfo.AllocationProtect);
-		printf("RegionSize: 0x%p -> 0x%p\n", meminfo2.RegionSize, meminfo.RegionSize);
-		printf("State: 0x%p -> 0x%p\n", meminfo2.State, meminfo.State);
-		printf("Protect: 0x%p -> 0x%p\n", meminfo2.Protect, meminfo.Protect);
-		printf("Type: 0x%p -> 0x%p\n", meminfo2.Type, meminfo.Type);
-		printf("PartitionId: 0x%p -> 0x%p\n", meminfo2.PartitionId, meminfo.PartitionId);
-		printf("----------------------------------------------\n");#1#
-
-		return sizeof(meminfo);*/
 	}
 }
