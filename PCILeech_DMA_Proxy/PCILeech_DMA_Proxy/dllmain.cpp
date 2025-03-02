@@ -122,7 +122,7 @@ DWORD WINAPI start_thread() {
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
-    if (MH_CreateHookApi(L"kernel32.dll", "VirtualQuery", &Hooks::hk_virtual_query, NULL) != MH_OK) {
+    if (MH_CreateHookApi(L"kernel32.dll", "VirtualQueryEx", &Hooks::hk_virtual_query_ex, NULL) != MH_OK) {
         printf("[!] Could not initialize VirtualQuery");
         VMMDLL_Close(mem.vHandle);
         exit(1);
@@ -133,22 +133,22 @@ DWORD WINAPI start_thread() {
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
-    if (MH_CreateHookApi(L"kernel32.dll", "Process32First", &Hooks::hk_process_32_first, NULL) != MH_OK) {
-        printf("[!] Could not initialize Process32First");
+    if (MH_CreateHookApi(L"kernel32.dll", "Process32FirstW", &Hooks::hk_process_32_firstW, NULL) != MH_OK) {
+        printf("[!] Could not initialize Process32FirstW");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
-    if (MH_CreateHookApi(L"kernel32.dll", "Process32Next", &Hooks::hk_process_32_next, NULL) != MH_OK) {
+    if (MH_CreateHookApi(L"kernel32.dll", "Process32NextW", &Hooks::hk_process_32_nextW, NULL) != MH_OK) {
         printf("[!] Could not initialize Process32Next");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
-    if (MH_CreateHookApi(L"kernel32.dll", "Module32First", &Hooks::hk_module_32_first, NULL) != MH_OK) {
+    if (MH_CreateHookApi(L"kernel32.dll", "Module32FirstW", &Hooks::hk_module_32_firstW, NULL) != MH_OK) {
         printf("[!] Could not initialize Module32First");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
-    if (MH_CreateHookApi(L"kernel32.dll", "Module32Next", &Hooks::hk_module_32_next, NULL) != MH_OK) {
+    if (MH_CreateHookApi(L"kernel32.dll", "Module32NextW", &Hooks::hk_module_32_nextW, NULL) != MH_OK) {
         printf("[!] Could not initialize Module32Next");
         VMMDLL_Close(mem.vHandle);
         exit(1);

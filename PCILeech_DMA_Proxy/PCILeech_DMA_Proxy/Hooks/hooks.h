@@ -47,7 +47,7 @@ namespace Hooks
 	}
 
 	//Mem.cpp
-	extern SIZE_T hk_virtual_query(HANDLE hProcess, LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength);
+	extern SIZE_T hk_virtual_query_ex(HANDLE hProcess, LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength);
 	extern bool hk_write(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesRead);
 	extern BOOL hk_read(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesRead);
 	extern HANDLE hk_open_process(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId);
@@ -55,12 +55,16 @@ namespace Hooks
 	//Process.cpp
 	extern HANDLE hk_create_tool_help_32_snapshot(DWORD dwFlags, DWORD th32ProcessID);
 	extern BOOL hk_process_32_first(HANDLE hSnapshot, LPPROCESSENTRY32 lppe);
+	extern BOOL hk_process_32_firstW(HANDLE hSnapshot, LPPROCESSENTRY32W lppe);
 	extern BOOL hk_process_32_next(HANDLE hSnapshot, LPPROCESSENTRY32 lppe);
+	extern BOOL hk_process_32_nextW(HANDLE hSnapshot, LPPROCESSENTRY32W lppe);
 	extern BOOL WINAPI hk_IsWow64Process(HANDLE hProcess, PBOOL Wow64Process);
 
 	//Modules.cpp
 	extern BOOL hk_module_32_next(HANDLE hSnapshot, LPMODULEENTRY32 lpme);
+	extern BOOL hk_module_32_nextW(HANDLE hSnapshot, LPMODULEENTRY32W lpme);
 	extern BOOL hk_module_32_first(HANDLE hSnapshot, LPMODULEENTRY32 lpme);
+	extern BOOL hk_module_32_firstW(HANDLE hSnapshot, LPMODULEENTRY32W lpme);
 
 	//Threads.cpp
 	extern BOOL hk_thread_32_next(HANDLE hSnapshot, LPTHREADENTRY32 lpte);

@@ -89,7 +89,7 @@ int main(int argc, char** argv)
     info("Resuming process in 5 seconds...\n");
 
 
-    Sleep(5000); // Small wait for DMA setup
+    Sleep(8000); // Small wait for DMA setup
     if (!ResumeThread(proc.hThread)) {
         error("Could not resume thread\n");
         exit(1);

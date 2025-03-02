@@ -246,7 +246,7 @@ namespace Hooks
 	{
 		thread_info = NULL;
 		current_thread = 0;
-		if (!VMMDLL_Map_GetThread(mem.vHandle, mem.current_process.PID, &thread_info))
+		if (!VMMDLL_Map_GetThread(mem.vHandle, mem.initialized_processes[hSnapshot].PID, &thread_info))
 			return false;
 
 		lpte->dwSize = sizeof(LPTHREADENTRY32);

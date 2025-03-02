@@ -12,29 +12,25 @@ namespace Hooks
 {
 	HANDLE hk_open_process(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId)
 	{
-		if (mem.InitProcess((int)dwProcessId, true))
-			return (HANDLE)0x69;
-
-		return NULL;
+		return mem.InitProcess((int)dwProcessId, true);
 	}
 
 	BOOL hk_read(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesRead)
 	{
-		printf("READ: Reading %x %p %p %u\n", hProcess, lpBaseAddress, lpBaseAddress, nSize);
-		return mem.Read((UINT64)lpBaseAddress, lpBuffer, nSize, (PDWORD)lpNumberOfBytesRead);
+		return mem.Read(hProcess, (UINT64)lpBaseAddress, lpBuffer, nSize, (PDWORD)lpNumberOfBytesRead);
 	}
 
 	bool hk_write(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesRead)
 	{
-		return mem.Write((UINT64)lpBaseAddress, lpBuffer, nSize);
+		return mem.Write(hProcess, (UINT64)lpBaseAddress, lpBuffer, nSize);
 	}
 
-	std::list<c_memory_region<vad_info>> get_memory_region()
+	std::list<c_memory_region<vad_info>> get_memory_region(HANDLE hProcess)
 	{
 		std::list<c_memory_region<vad_info>> result = { };
 		PVMMDLL_MAP_VAD vads = nullptr;
 
-		if (!VMMDLL_Map_GetVadW(mem.vHandle, mem.current_process.PID, true, &vads))
+		if (!VMMDLL_Map_GetVadW(mem.vHandle, mem.initialized_processes[hProcess].PID, true, &vads))
 			return { };
 
 		std::vector<vad_info> vad_infos;
@@ -54,24 +50,24 @@ namespace Hooks
 
 	std::map<int, std::pair<uint64_t, std::list<c_memory_region<vad_info>>>> region_cache;
 
-	bool VirtualQueryImpl_(uintptr_t lpAddress, c_memory_region<vad_info>* ret)
+	bool VirtualQueryExImpl_(HANDLE hProcess, uintptr_t lpAddress, c_memory_region<vad_info>* ret)
 	{
-		if (region_cache.find(mem.current_process.PID) != region_cache.end())
+		if (region_cache.find(mem.initialized_processes[hProcess].PID) != region_cache.end())
 		{
-			auto&& [time, region] = region_cache[mem.current_process.PID];
+			auto&& [time, region] = region_cache[mem.initialized_processes[hProcess].PID];
 			if (GetTickCount() - time > 1000)
 			{
-				auto&& new_region = get_memory_region();
-				region_cache.erase(mem.current_process.PID);
-				region_cache.insert({mem.current_process.PID, {GetTickCount(), new_region}});
+				auto&& new_region = get_memory_region(hProcess);
+				region_cache.erase(mem.initialized_processes[hProcess].PID);
+				region_cache.insert({mem.initialized_processes[hProcess].PID, {GetTickCount(), new_region}});
 			}
 		}
 		else
 		{
-			auto&& new_region = get_memory_region();
-			region_cache.insert({mem.current_process.PID, std::pair(GetTickCount(), new_region)});
+			auto&& new_region = get_memory_region(hProcess);
+			region_cache.insert({mem.initialized_processes[hProcess].PID, std::pair(GetTickCount(), new_region)});
 		}
-		auto regions = region_cache[mem.current_process.PID].second;
+		auto regions = region_cache[mem.initialized_processes[hProcess].PID].second;
 
 		auto it = std::lower_bound(regions.begin(), regions.end(), lpAddress,
 		                           [](const c_memory_region<vad_info>& region, uintptr_t addr)
@@ -89,7 +85,7 @@ namespace Hooks
 	PVMMDLL_MAP_PTE pMemMapEntries = NULL;
 	PVMMDLL_MAP_MODULE pModuleEntries = NULL;
 
-	SIZE_T hk_virtual_query(HANDLE hProcess, LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength)
+	SIZE_T hk_virtual_query_ex(HANDLE hProcess, LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength)
 	{
 		MEMORY_BASIC_INFORMATION info { };
 		bool valid = false;
@@ -98,7 +94,7 @@ namespace Hooks
 		{
 			if (!pMemMapEntries)
 			{
-				bool result = VMMDLL_Map_GetPte(mem.vHandle, mem.current_process.PID, TRUE, &pMemMapEntries);
+				bool result = VMMDLL_Map_GetPte(mem.vHandle, mem.initialized_processes[hProcess].PID, TRUE, &pMemMapEntries);
 				if (!result)
 				{
 					printf("Failed to get PTE\n");
@@ -107,7 +103,7 @@ namespace Hooks
 			}
 			if (!pModuleEntries)
 			{
-				bool result = VMMDLL_Map_GetModule(mem.vHandle, mem.current_process.PID, &pModuleEntries, NULL);
+				bool result = VMMDLL_Map_GetModule(mem.vHandle, mem.initialized_processes[hProcess].PID, &pModuleEntries, NULL);
 				if (!result)
 				{
 					printf("Failed to get Modules\n");
@@ -192,7 +188,7 @@ namespace Hooks
 		{
 			MEMORY_BASIC_INFORMATION meminfo = { };
 			c_memory_region<vad_info> vinfo;
-			if (!Hooks::VirtualQueryImpl_(reinterpret_cast<uintptr_t>(lpAddress), &vinfo))
+			if (!Hooks::VirtualQueryExImpl_(hProcess, reinterpret_cast<uintptr_t>(lpAddress), &vinfo))
 				return 0;
 
 			ZeroMemory(&meminfo, sizeof(meminfo));
