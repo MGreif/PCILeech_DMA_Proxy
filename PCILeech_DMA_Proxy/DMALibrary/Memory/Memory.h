@@ -5,6 +5,17 @@
 #include "../nt/structs.h"
 #include <stdio.h>
 #include <string>
+#include <unordered_map>
+
+struct CurrentProcessInformation
+{
+	HANDLE hProcess = NULL;
+	BOOLEAN isInitialized = TRUE;
+	int PID = 0;
+	size_t base_address = 0;
+	size_t base_size = 0;
+	std::string process_name = "";
+};
 
 class Memory
 {
@@ -18,14 +29,8 @@ private:
 
 	static inline LibModules modules { };
 
-	struct CurrentProcessInformation
-	{
-		int PID = 0;
-		size_t base_address = 0;
-		size_t base_size = 0;
-		std::string process_name = "";
-	};
 
+	static inline UINT16 hProcessCount = 1;
 	static inline BOOLEAN DMA_INITIALIZED = FALSE;
 	static inline BOOLEAN PROCESS_INITIALIZED = FALSE;
 	/**
@@ -52,7 +57,8 @@ private:
 	this->key_ptr = std::make_shared<c_keys>(*this);*/
 
 public:
-	static inline CurrentProcessInformation current_process { };
+
+	static inline std::unordered_map<HANDLE, CurrentProcessInformation> initialized_processes; // hashmap[handle] = CPI
 
 	/**
 	 * brief Constructor takes a wide string of the process.
@@ -81,8 +87,10 @@ public:
 	* @return true if successful, false if not.
 	*/
 	bool Init(bool memMap = true, bool debug = false);
-	bool InitProcess(std::string process_name, bool memMap = true, bool debug = false);
-	bool InitProcess(int process_pid, bool memMap = true, bool debug = false);
+	
+	// Initialzies a new process and ads it to the initialized_processes hashmap for later distinguishing
+	HANDLE InitProcess(std::string process_name, bool memMap = true, bool debug = false);
+	HANDLE InitProcess(int process_pid, bool memMap = true, bool debug = false);
 
 	/*This part here is things related to the process information such as Base daddy, Size ect.*/
 
@@ -105,33 +113,33 @@ public:
 	* \param process_name the name of the process 
 	* \return all the module names of the process 
 	*/
-	std::vector<std::string> GetModuleList(std::string process_name);
+	std::vector<std::string> GetModuleList(HANDLE hProcess);
 
 	/**
 	* \brief Gets the process information
 	* \return the process information
 	*/
-	VMMDLL_PROCESS_INFORMATION GetProcessInformation();
+	VMMDLL_PROCESS_INFORMATION GetProcessInformation(HANDLE hProcess);
 
 	/**
 	* \brief Gets the process peb
 	* \return the process peb 
 	*/
-	PEB GetProcessPeb();
+	PEB GetProcessPeb(HANDLE hProcess);
 
 	/**
 	* brief Gets the base address of the process
 	* @param module_name the name of the module
 	* @return the base address of the process
 	*/
-	size_t GetBaseDaddy(std::string module_name);
+	size_t GetBaseDaddy(HANDLE hProcess, std::string module_name);
 
 	/**
 	* brief Gets the base size of the process
 	* @param module_name the name of the module
 	* @return the base size of the process
 	*/
-	size_t GetBaseSize(std::string module_name);
+	size_t GetBaseSize(HANDLE hProcess, std::string module_name);
 
 	/**
 	* brief Gets the export table address of the process
@@ -158,14 +166,14 @@ public:
 	 * it then puts it in a vector to later try each possible DTB to find the DTB of the process.
 	 * NOTE: Using FixCR3 requires you to have symsrv.dll, dbghelp.dll and info.db
 	 */
-	bool FixCr3();
+	bool FixCr3(HANDLE hProcess);
 
 	/**
 	 * \brief Dumps the process memory at address (requires to be a valid PE Header) to the path
 	 * \param address the address to the PE Header(BaseAddress)
 	 * \param path the path where you wanna save dump to
 	 */
-	bool DumpMemory(uintptr_t address, std::string path);
+	bool DumpMemory(HANDLE hProcess, uintptr_t address, std::string path);
 
 	/*This part is where all memory operations are done, such as read, write.*/
 
@@ -177,7 +185,7 @@ public:
 	 * \param PID (OPTIONAL) where to read to?
 	 * \return address of signature
 	 */
-	uint64_t FindSignature(const char* signature, uint64_t range_start, uint64_t range_end, int PID = 0);
+	uint64_t FindSignature(HANDLE hProcess, const char* signature, uint64_t range_start, uint64_t range_end, int PID = 0);
 
 	/**
 	 * \brief Writes memory to the process 
@@ -186,7 +194,7 @@ public:
 	 * \param size The size of the buffer
 	 * \return 
 	 */
-	bool Write(uintptr_t address, void* buffer, size_t size) const;
+	bool Write(HANDLE hProcess, uintptr_t address, void* buffer, size_t size) const;
 	bool Write(uintptr_t address, void* buffer, size_t size, int pid) const;
 
 	/**
@@ -195,13 +203,13 @@ public:
 	 * \param value the value you'll write to the address
 	 */
 	template <typename T>
-	void Write(void* address, T value)
+	void Write(HANDLE hProcess, void* address, T value)
 	{
 		Write(address, &value, sizeof(T));
 	}
 
 	template <typename T>
-	void Write(uintptr_t address, T value)
+	void Write(HANDLE hProcess, uintptr_t address, T value)
 	{
 		Write(address, &value, sizeof(T));
 	}
@@ -219,9 +227,9 @@ public:
 	* @param size The size of the buffer
 	* @return true if successful, false if not.
 	*/
-	bool Read(uintptr_t address, void* buffer, size_t size) const;
+	bool Read(HANDLE hProcess, uintptr_t address, void* buffer, size_t size) const;
 	bool Read(uintptr_t address, void* buffer, size_t size, int pid) const;
-	bool Read(uintptr_t address, void* buffer, size_t size, PDWORD read) const;
+	bool Read(HANDLE hProcess, uintptr_t address, void* buffer, size_t size, PDWORD read) const;
 
 	/**
 	* brief Reads memory from the process using a template
@@ -229,19 +237,19 @@ public:
 	* @return the value read from the process
 	*/
 	template <typename T>
-	T Read(void* address)
+	T Read(HANDLE hProcess, void* address)
 	{
 		T buffer { };
 		memset(&buffer, 0, sizeof(T));
-		Read(reinterpret_cast<uint64_t>(address), reinterpret_cast<void*>(&buffer), sizeof(T));
+		Read(hProcess, reinterpret_cast<uint64_t>(address), reinterpret_cast<void*>(&buffer), sizeof(T));
 
 		return buffer;
 	}
 
 	template <typename T>
-	T Read(uint64_t address)
+	T Read(HANDLE hProcess, uint64_t address)
 	{
-		return Read<T>(reinterpret_cast<void*>(address));
+		return Read<T>(hProcess, reinterpret_cast<void*>(address));
 	}
 
 	/**
@@ -272,10 +280,10 @@ public:
 	* @param a vector of offset values to read through
 	* @return the value read from the chain
 	*/
-	uint64_t ReadChain(uint64_t base, const std::vector<uint64_t>& offsets)
+	uint64_t ReadChain(HANDLE hProcess, uint64_t base, const std::vector<uint64_t>& offsets)
 	{
-		uint64_t result = Read<uint64_t>(base + offsets.at(0));
-		for (int i = 1; i < offsets.size(); i++) result = Read<uint64_t>(result + offsets.at(i));
+		uint64_t result = Read<uint64_t>(hProcess, base + offsets.at(0));
+		for (int i = 1; i < offsets.size(); i++) result = Read<uint64_t>(hProcess, result + offsets.at(i));
 		return result;
 	}
 
@@ -283,7 +291,7 @@ public:
 	 * \brief Create a scatter handle, this is used for scatter read/write requests
 	 * \return Scatter handle
 	 */
-	VMMDLL_SCATTER_HANDLE CreateScatterHandle() const;
+	VMMDLL_SCATTER_HANDLE CreateScatterHandle(HANDLE hProcess) const;
 	VMMDLL_SCATTER_HANDLE CreateScatterHandle(int pid) const;
 
 	/**
@@ -308,8 +316,8 @@ public:
 	 * \param handle 
 	 * \param pid 
 	 */
-	void ExecuteReadScatter(VMMDLL_SCATTER_HANDLE handle, int pid = 0);
-	void ExecuteWriteScatter(VMMDLL_SCATTER_HANDLE handle, int pid = 0);
+	void ExecuteReadScatter(VMMDLL_SCATTER_HANDLE handle, HANDLE hProcess, int pid = 0);
+	void ExecuteWriteScatter(VMMDLL_SCATTER_HANDLE handle, HANDLE hProcess, int pid = 0);
 
 	/*the FPGA handle*/
 	VMM_HANDLE vHandle;
