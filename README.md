@@ -6,16 +6,20 @@ PCILeech_DMA_Proxy is a DLL that can be injected into other processes to hook co
 - OpenProcess
 - ReadProcessMemory
 - WriteProcessMemory
-- VirtualQuery
+- VirtualQueryEx
 - CreateToolhelp32Snapshot
-- Module32First
-- Module32Next
-- Process32First
-- Process32Next
-- Thread32First
-- Thread32Next
+    - Process32First
+    - Process32FirstW
+    - Process32Next
+    - Process32NextW
+    - Module32First
+    - Module32FirstW
+    - Module32Next
+    - Module32NextW
+    - Thread32First
+    - Thread32Next
 
-More threading functions are implemented in the **DMALibrary** but are currently not hooked. This is WIP.
+More functions are implemented in the **DMALibrary** but are currently not hooked. This is WIP.
 
 These calls are redirected to your target device that your DMA card is connected to.
 
@@ -25,6 +29,12 @@ My goal is to write a generic program so almost-every program can be proxied to 
 I dont know if they work yet, but im planning on doing:
 - Some external game cheats/dumpers
 - Mimikatz lsass 
+
+# Todo
+
+- [] Better handling of the target process (it currently stays open, should be easy to fix)
+- [] Try interactive processes
+- [] Try actual cheats/dumpers
 
 # Contents
 
