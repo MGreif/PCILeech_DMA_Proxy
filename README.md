@@ -37,7 +37,13 @@ I dont know if they work yet, but im planning on doing:
 - [x] Try interactive processes
     - Accepts STDIN 
 
+- [x] Better logging
+
 - [] Try actual cheats/dumpers
+    - [x] [Aliens: Fireteam Elite Hack](https://github.com/MGreif/aliens-fireteam-elite-external-cheat-menu)
+    - [x] [Aliens: Fireteam Elite UnrealEngine Dumper](https://github.com/MGreif/aliens-fireteam-elite-external-cheat-menu)
+    - [] Private CSGO external ESP (have not tried yet)
+
 - [] Hook CreateProcess and other creation api calls to automatically inject Proxy dll into them aswell
 
 # Known caveats
@@ -76,12 +82,14 @@ Currently it uses `CreateRemoteThreadEx` to remote execute and `LoadLibraryA` to
 ~~A small DWORD memory reader for testing purposes.~~
 A more comprehensive testing tool that tests:
 - OpenProcess
+- CloseHandle
 - CreateToolhelp32Snapshot
     - Process32FirstW
     - Process32NextW
     - Module32FirstW
     - Module32NextW
 - VirtualQueryEx
+- VirtualProtectEx
 - ReadProcessMemory
 - WriteProcessMemory
 
