@@ -4,9 +4,11 @@
 
 PCILeech_DMA_Proxy is a DLL that can be injected into other processes to hook common Memory calls such as:
 - OpenProcess
+- CloseHandle
 - ReadProcessMemory
 - WriteProcessMemory
 - VirtualQueryEx
+- VirtualProtectEx
 - CreateToolhelp32Snapshot
     - Process32First
     - Process32FirstW
@@ -32,16 +34,11 @@ I dont know if they work yet, but im planning on doing:
 
 # Todo
 
-- [] Better handling of the target process (it currently stays open, should be easy to fix)
-    - Small temporal fix rn
-    - [] implement CloseHandle hook that closes VMM handle
-
 - [x] Try interactive processes
     - Accepts STDIN 
 
 - [] Try actual cheats/dumpers
 - [] Hook CreateProcess and other creation api calls to automatically inject Proxy dll into them aswell
-- [] Hook VirtualProtectEx
 
 # Contents
 
