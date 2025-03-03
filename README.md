@@ -72,7 +72,23 @@ Currently it uses `CreateRemoteThreadEx` to remote execute and `LoadLibraryA` to
 
 ### SampleMemoryReader
 
-A small DWORD memory reader for testing purposes.
+~~A small DWORD memory reader for testing purposes.~~
+A more comprehensive testing tool that tests:
+- OpenProcess
+- CreateToolhelp32Snapshot
+    - Process32FirstW
+    - Process32NextW
+    - Module32FirstW
+    - Module32NextW
+- ReadProcessMemory
+- WriteProcessMemory
+
+1. It opens the target process by `PID`.
+2. It enumerates all processes to get the name of the process with the given `PID`.
+3. It enumerates all modules of this process and displays some information about them.
+4. It simply reads the supplied vaddr, then writes it, then reads it again.
+
+As I develop the proxy, I will add more functionality to this.
 
 # How to build
 
