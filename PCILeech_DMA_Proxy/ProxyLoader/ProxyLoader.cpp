@@ -110,6 +110,20 @@ void displayProcessOutput(ProcessInfo proc) {
     }
 }
 
+ProcessInfo proc;
+
+
+BOOL WINAPI consoleHandler(DWORD signal) {
+
+    if (signal == CTRL_C_EVENT) {
+        error("CTRL+C detected ... Shutting down...\n");
+        TerminateProcess(proc.hProcess, 0);
+        VMMDLL_CloseAll();
+    }
+
+    return TRUE;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -125,7 +139,13 @@ int main(int argc, char** argv)
         args += std::string(argv[i]) + " ";
     }
 
-    ProcessInfo proc = CreateSuspendedProcess(exe, args);
+    if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {
+        printf("\nERROR: Could not set control handler");
+        return 1;
+    }
+
+
+    proc = CreateSuspendedProcess(exe, args);
 
     std::thread outputDisplay(displayProcessOutput, proc);
 
