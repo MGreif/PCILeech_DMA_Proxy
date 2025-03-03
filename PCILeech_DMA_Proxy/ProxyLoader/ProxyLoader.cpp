@@ -72,7 +72,7 @@ void displayProcessOutput(ProcessInfo proc) {
     info("Starting outputDisplay thread\n");
     while (timeoutCounter < NO_DATA_TIMEOUT_SECONDS) {
         if (!PeekNamedPipe(proc.hReadPipe, NULL, 0, NULL, &bytesAvailable, NULL)) {
-            error("Could not peek pipe\n");
+            // Process probably terminated
             break;
         }
         if (bytesAvailable > 0) {

@@ -14,6 +14,19 @@ namespace Hooks
 	{
 		return mem.InitProcess((int)dwProcessId, true);
 	}
+	
+	BOOL hk_close_handle(HANDLE handle) {
+		if (!isDMAProcessHandle(handle)) {
+			return Hooks::close_handle(handle);
+		}
+		BOOL result = mem.initialized_processes.erase(handle) > 0;
+
+		if (mem.initialized_processes.size() == 0) {
+			LOG("Closing DMA handle (%u) due to no more process handlers present\n", mem.vHandle);
+			VMMDLL_Close(mem.vHandle);
+		}
+		return result;
+	}
 
 	BOOL hk_read(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesRead)
 	{
@@ -209,5 +222,14 @@ namespace Hooks
 			return sizeof(meminfo);
 		}
 		return sizeof(info);
+	}
+
+	BOOL hk_virtual_protect_ex(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect) {
+		if (!isDMAProcessHandle(hProcess)) {
+			// Not found in initialized processes (OpenProcess), so probably not intended to be proxied
+			return Hooks::hk_virtual_protect_ex(hProcess, lpAddress, dwSize, flNewProtect, lpflOldProtect);
+		}
+		*lpflOldProtect = flNewProtect; // Naive, but should do the trick
+		return TRUE;
 	}
 }

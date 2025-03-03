@@ -41,6 +41,7 @@ I dont know if they work yet, but im planning on doing:
 
 - [] Try actual cheats/dumpers
 - [] Hook CreateProcess and other creation api calls to automatically inject Proxy dll into them aswell
+- [] Hook VirtualProtectEx
 
 # Contents
 

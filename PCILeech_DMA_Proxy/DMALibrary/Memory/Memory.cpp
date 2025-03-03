@@ -195,7 +195,9 @@ bool Memory::Init(bool memMap, bool debug) {
 		DMA_INITIALIZED = TRUE;
 	}
 	else
+	{
 		LOG("DMA already initialized!\n");
+	}
 	return TRUE;
 }
 
@@ -239,7 +241,7 @@ HANDLE Memory::InitProcess(std::string process_name, bool memMap, bool debug)
 	LOG("Base Address: 0x%llx\n", initialized_processes[current_process.hProcess].base_address);
 	LOG("Base Size: 0x%llx\n", initialized_processes[current_process.hProcess].base_size);
 
-	LOG("Process initialized and added to hashmap\n");
+	LOG("Process PID %u, handle %u initialized and added to hashmap\n", initialized_processes[current_process.hProcess].PID, initialized_processes[current_process.hProcess].hProcess);
 	//PROCESS_INITIALIZED = TRUE;
 
 	return current_process.hProcess;

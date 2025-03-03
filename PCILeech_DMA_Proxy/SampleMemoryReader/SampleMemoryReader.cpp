@@ -20,8 +20,6 @@ int main(int argc, char** argv)
 
 	HANDLE hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION, 0, pid);
 
-	getchar();
-
 	printf("Got process handle: 0x%p\n", hProcess);
 
 	if (!hProcess) {
@@ -83,6 +81,13 @@ int main(int argc, char** argv)
 
 	if (mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD)) {
 		printf("Page is not accessible %x\n", mbi.Protect);
+		printf("Error: %u\n", GetLastError());
+		exit(1);
+	}
+
+	DWORD oldProtect;
+	if (!VirtualProtectEx(hProcess, vaddr, sizeof(DWORD), PAGE_READWRITE, &oldProtect)) {
+		printf("Could not VirtualProtectEx\n");
 		printf("Error: %u\n", GetLastError());
 		exit(1);
 	}
