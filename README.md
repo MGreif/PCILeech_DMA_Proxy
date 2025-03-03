@@ -35,7 +35,8 @@ I dont know if they work yet, but im planning on doing:
 # Todo
 
 - [x] Try interactive processes
-    - Accepts STDIN 
+    - Accepts STDIN
+    - It currently does not show the typed text, but its registered
 
 - [x] Better logging
 
@@ -44,7 +45,7 @@ I dont know if they work yet, but im planning on doing:
     - [x] [Aliens: Fireteam Elite UnrealEngine Dumper](https://github.com/MGreif/aliens-fireteam-elite-external-cheat-menu)
     - [] Private CSGO external ESP (have not tried yet)
 
-- [] Hook CreateProcess and other creation api calls to automatically inject Proxy dll into them aswell
+- [] Hook CreateProcess and other creation api calls to automatically inject proxy DLL into them aswell
 
 # Known caveats
 - First few prints (e.g. help/usage) is not printed in child output
@@ -68,9 +69,9 @@ This DLL can be injected into the target process using any DLL injector. It just
 
 ### ProxyLoader
 
-Sometimes you need to have the DLL injected at the very beginning. You can do this yourself by starting the target process as suspended and injecting your DLL yourself.
+Sometimes you need to have the DLL injected at the very beginning. You can do this yourself by starting the target process as suspended and injecting te DLL yourself.
 But I wanted a [ProxyChains](https://github.com/haad/proxychains) like user experience for it so I decided to write a generic one.
-Currently it uses `CreateRemoteThreadEx` to remote execute and `LoadLibraryA` to load the module. But it also contains logic for thread hijacking (did not work on my machine due to CFG).
+Currently it uses `CreateRemoteThreadEx` to remote execute and `LoadLibraryA` to load the module. But it also contains logic for thread hijacking (did not work on my machine due to Control Flow Guard (CFG)).
 
 #### Usage:
 
