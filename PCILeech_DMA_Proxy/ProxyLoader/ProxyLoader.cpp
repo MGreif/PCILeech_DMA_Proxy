@@ -7,6 +7,8 @@
 #define OUTPUT_BUFFER_SIZE 1024
 #define WAIT_TIME_SECONDS 3
 #define NO_DATA_TIMEOUT_SECONDS 10
+#define DISABLE_TIMEOUT true
+
 std::atomic<bool> gbProcessSuspended(true);
 
 struct ProcessInfo {
@@ -100,7 +102,7 @@ void displayProcessOutput(ProcessInfo proc) {
             warning("Pipe broke. Process probably terminated\n");
             break;
         }
-        else if (!gbProcessSuspended.load()) {
+        else if (!DISABLE_TIMEOUT && !gbProcessSuspended.load()) {
             if (timeoutCounter == 0 || timeoutCounter == ((NO_DATA_TIMEOUT_SECONDS - NO_DATA_TIMEOUT_SECONDS % 2) / 2) || (NO_DATA_TIMEOUT_SECONDS - timeoutCounter) < 3) {
                 warning("No bytes available. Maybe provide stdin? %d seconds until exit ...\n", NO_DATA_TIMEOUT_SECONDS - timeoutCounter);
             }
@@ -140,7 +142,7 @@ int main(int argc, char** argv)
     }
 
     if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {
-        printf("\nERROR: Could not set control handler");
+        error("Could not set control handler");
         return 1;
     }
 

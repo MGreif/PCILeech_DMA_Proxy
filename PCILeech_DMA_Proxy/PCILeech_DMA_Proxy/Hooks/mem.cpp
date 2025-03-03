@@ -137,7 +137,7 @@ namespace Hooks
 					info.AllocationBase = (PVOID)lpAddress;
 					info.RegionSize = memMapEntry->vaBase - (uintptr_t)lpAddress;
 					info.BaseAddress = (void*)((uintptr_t)lpAddress & ~(0xFF));
-					info.Protect = 1;
+					info.Protect |= PAGE_READWRITE | PAGE_READONLY | PAGE_WRITECOPY | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
 					info.State = MEM_FREE;
 					info.Type = 0;
 					valid = true;
@@ -158,7 +158,7 @@ namespace Hooks
 					if (memMapEntry->fPage & VMMDLL_MEMMAP_FLAG_PAGE_NS)
 						info.Protect |= PAGE_READONLY;
 					if (memMapEntry->fPage & VMMDLL_MEMMAP_FLAG_PAGE_W)
-						info.Protect |= PAGE_READWRITE;
+						info.Protect |= PAGE_READWRITE | PAGE_READONLY  | PAGE_WRITECOPY | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
 					if (!(memMapEntry->fPage & VMMDLL_MEMMAP_FLAG_PAGE_NX))
 						info.Protect |= PAGE_EXECUTE;
 
@@ -180,7 +180,7 @@ namespace Hooks
 					{
 						info.Type = MEM_MAPPED;
 					}
-					info.Protect = PAGE_EXECUTE_READWRITE;
+					//info.Protect = PAGE_EXECUTE_READWRITE;
 					info.AllocationBase = (PVOID)lpAddress;
 					info.AllocationProtect = info.Protect;
 					info.PartitionId = 0;
