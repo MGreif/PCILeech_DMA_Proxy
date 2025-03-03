@@ -33,8 +33,14 @@ I dont know if they work yet, but im planning on doing:
 # Todo
 
 - [] Better handling of the target process (it currently stays open, should be easy to fix)
-- [] Try interactive processes
+    - Small temporal fix rn
+    - [] implement CloseHandle hook that closes VMM handle
+
+- [x] Try interactive processes
+    - Accepts STDIN 
+
 - [] Try actual cheats/dumpers
+- [] Hook CreateProcess and other creation api calls to automatically inject Proxy dll into them aswell
 
 # Contents
 
