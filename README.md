@@ -80,6 +80,7 @@ A more comprehensive testing tool that tests:
     - Process32NextW
     - Module32FirstW
     - Module32NextW
+- VirtualQueryEx
 - ReadProcessMemory
 - WriteProcessMemory
 
