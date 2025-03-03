@@ -62,12 +62,12 @@ This DLL can be injected into the target process using any DLL injector. It just
 ### ProxyLoader
 
 Sometimes you need to have the DLL injected at the very beginning. You can do this yourself by starting the target process as suspended and injecting your DLL yourself.
-But i wanted a [ProxyChains](https://github.com/haad/proxychains) like user experience for it so i decided to write a generic one.
+But I wanted a [ProxyChains](https://github.com/haad/proxychains) like user experience for it so I decided to write a generic one.
 Currently it uses `CreateRemoteThreadEx` to remote execute and `LoadLibraryA` to load the module. But it also contains logic for thread hijacking (did not work on my machine due to CFG).
 
 #### Usage:
 
-- `ProxyLoader.exe <aboslute-path-to-proxy-dll> <absoluet-path-program> [...args]`
+- `ProxyLoader.exe <aboslute-path-to-proxy-dll> <absolute-path-program> [...args]`
 
 
 ### SampleMemoryReader
@@ -106,7 +106,7 @@ As I develop the proxy, I will add more functionality to this.
 Run the test:
 - Plug in DMA
 - Start target process (target pc)
-- Use CE or w/e to get your desired vaddr (i used assault cube ammo)
+- Use CE or w/e to get your desired vaddr (I used assault cube ammo)
 - `ProxyLoader.exe <absolute-path-built-dll> <absolute-path-sample-reader> <pid> <vaddr>`
 
 # Important
