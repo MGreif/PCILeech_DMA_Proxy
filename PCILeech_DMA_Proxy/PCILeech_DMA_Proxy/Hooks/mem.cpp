@@ -97,7 +97,7 @@ namespace Hooks
 				bool result = VMMDLL_Map_GetPte(mem.vHandle, mem.initialized_processes[hProcess].PID, TRUE, &pMemMapEntries);
 				if (!result)
 				{
-					printf("Failed to get PTE\n");
+					LOG("Failed to get PTE\n");
 					return 0;
 				}
 			}
@@ -106,7 +106,7 @@ namespace Hooks
 				bool result = VMMDLL_Map_GetModule(mem.vHandle, mem.initialized_processes[hProcess].PID, &pModuleEntries, NULL);
 				if (!result)
 				{
-					printf("Failed to get Modules\n");
+					LOG("Failed to get Modules\n");
 					return 0;
 				}
 			}

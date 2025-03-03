@@ -25,7 +25,7 @@ These calls are redirected to your target device that your DMA card is connected
 
 # Goal
 
-My goal is to write a generic program so almost-every program can be proxied to the memory of another device.
+My goal is to write a generic program so almost every program can be proxied to the memory of another device.
 I dont know if they work yet, but im planning on doing:
 - Some external game cheats/dumpers
 - Mimikatz lsass 

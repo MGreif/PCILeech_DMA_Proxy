@@ -11,12 +11,16 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	printf("Starting SampleMemoryReader PID: %u TID: %u\n", GetCurrentProcessId(), GetCurrentThreadId());
+
 	int pid = atoi(argv[1]);
 	LPVOID vaddr = (LPVOID)strtoll(argv[2], &argv[2] + strlen(argv[2]), 16);
 
 	printf("Reading memory of pid:%u at 0x%p\n", pid, vaddr);
 
 	HANDLE hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION, 0, pid);
+
+	getchar();
 
 	printf("Got process handle: 0x%p\n", hProcess);
 
@@ -104,14 +108,14 @@ int main(int argc, char** argv)
 
 	printf("Wrote 0x%x to %p\n", vaddr, newVal);
 
-	out;
 	if (!ReadProcessMemory(hProcess, vaddr, &out, sizeof(DWORD), NULL)) {
 
 		printf("[!] Failed reading memory ...\n");
 		exit(1);
 	}
 
-	printf("New value of %p is 0x%x\n", vaddr, newVal);
-
+	printf("New value of %p is 0x%x\n", vaddr, out);
+	fflush(stdout);
+	CloseHandle(hProcess);
 	return 0;
 }

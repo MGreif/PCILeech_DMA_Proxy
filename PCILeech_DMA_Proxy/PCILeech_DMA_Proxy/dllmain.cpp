@@ -9,6 +9,8 @@
 
 DWORD WINAPI start_thread();
 extern Memory mem;
+#define LOG(fmt, ...) {printf("[Proxy] ");std::printf(fmt, ##__VA_ARGS__); fflush(stdout);};
+
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
@@ -19,13 +21,13 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH: {
         //DisableThreadLibraryCalls(hModule); // Prevent thread attach/detach calls for efficiency
-        CreateThread(NULL, 4096, (LPTHREAD_START_ROUTINE)start_thread, NULL, 0, NULL);
+        HANDLE hThread = CreateThread(NULL, 4096, (LPTHREAD_START_ROUTINE)start_thread, NULL, 0, NULL);
+        LOG("Started thread %u\n", GetThreadId(hThread));
         return TRUE;
     }
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
+    case DLL_PROCESS_DETACH: {
         break;
+    }
     }
     return TRUE;
 }
@@ -60,7 +62,7 @@ tThread32Next thread_32_next = nullptr;
 void resolve_function_addresses() {
     HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
     if (!hKernel32) {
-        std::cerr << "Failed to get handle for kernel32.dll\n";
+        LOG("Failed to get handle for kernel32.dll\n");
         return;
     }
 
@@ -77,106 +79,106 @@ void resolve_function_addresses() {
     thread_32_next = (tThread32Next)GetProcAddress(hKernel32, "Thread32Next");
 
     // Print results
-    printf("Original functions:\n");
-    std::cout << "OpenProcess: 0x" << open_process << std::endl;
-    std::cout << "ReadProcessMemory: 0x" << read_process_memory << std::endl;
-    std::cout << "WriteProcessMemory: 0x" << write_process_memory << std::endl;
-    std::cout << "VirtualQueryEx: 0x" << virtual_query << std::endl;
-    std::cout << "CreateToolhelp32Snapshot: 0x" << create_tool_help32 << std::endl;
-    std::cout << "Process32First: 0x" << process_32_first << std::endl;
-    std::cout << "Process32Next: 0x" << process_32_next << std::endl;
-    std::cout << "Module32First: 0x" << module_32_first << std::endl;
-    std::cout << "Module32Next: 0x" << module_32_next << std::endl;
-    std::cout << "Thread32First: 0x" << thread_32_first << std::endl;
-    std::cout << "Thread32Next: 0x" << thread_32_next << std::endl;
+    LOG("Original functions:\n");
+    LOG("OpenProcess: 0x%p\n", open_process);
+    LOG("ReadProcessMemory: 0x%p\n", read_process_memory);
+    LOG("WriteProcessMemory: 0x%p\n", write_process_memory);
+    LOG("VirtualQueryEx: 0x%p\n", virtual_query);
+    LOG("CreateToolhelp32Snapshot: 0x%p\n", create_tool_help32);
+    LOG("Process32First: 0x%p\n", process_32_first);
+    LOG("Process32Next: 0x%p\n", process_32_next);
+    LOG("Module32First: 0x%p\n", module_32_first);
+    LOG("Module32Next: 0x%p\n", module_32_next);
+    LOG("Thread32First: 0x%p\n", thread_32_first);
+    LOG("Thread32Next: 0x%p\n", thread_32_next);
 }
 
 DWORD WINAPI start_thread() {
     //open console
-    AllocConsole();
+    
+    if (false) {
+        AllocConsole();
+        freopen_s((FILE**)stdin, "conin$", "r", stdin);
+        freopen_s((FILE**)stdout, "conout$", "w", stdout);
+        freopen_s((FILE**)stdout, "conout$", "w", stderr);
+    }
 
-    freopen_s((FILE**)stdin, "conin$", "r", stdin);
-    freopen_s((FILE**)stdout, "conout$", "w", stdout);
-    freopen_s((FILE**)stdout, "conout$", "w", stderr);
-
+    
     resolve_function_addresses();
 
     if (MH_Initialize() != MH_OK) {
-        printf("[!] Could not initialize hooks");
+        LOG("[!] Could not initialize hooks");
         exit(1);
     }
-
-    printf("Initialized DMA with handle %x\n", mem.vHandle);
     if (MH_CreateHookApi(L"kernel32.dll", "OpenProcess", &Hooks::hk_open_process, NULL) != MH_OK) {
-        printf("[!] Could not initialize OpenProcess");
+        LOG("[!] Could not initialize OpenProcess");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "ReadProcessMemory", &Hooks::hk_read, NULL) != MH_OK) {
-        printf("[!] Could not initialize ReadProcessMemory");
+        LOG("[!] Could not initialize ReadProcessMemory");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "WriteProcessMemory", &Hooks::hk_write, NULL) != MH_OK) {
-        printf("[!] Could not initialize WriteProcessMemory");
+        LOG("[!] Could not initialize WriteProcessMemory");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "VirtualQueryEx", &Hooks::hk_virtual_query_ex, NULL) != MH_OK) {
-        printf("[!] Could not initialize VirtualQuery");
+        LOG("[!] Could not initialize VirtualQuery");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
 
     if (MH_CreateHookApi(L"kernel32.dll", "CreateToolhelp32Snapshot", &Hooks::hk_create_tool_help_32_snapshot, NULL) != MH_OK) {
-        printf("[!] Could not initialize CreateToolhelp32Snapshot");
+        LOG("[!] Could not initialize CreateToolhelp32Snapshot");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "Process32FirstW", &Hooks::hk_process_32_firstW, NULL) != MH_OK) {
-        printf("[!] Could not initialize Process32FirstW");
+        LOG("[!] Could not initialize Process32FirstW");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "Process32NextW", &Hooks::hk_process_32_nextW, NULL) != MH_OK) {
-        printf("[!] Could not initialize Process32Next");
+        LOG("[!] Could not initialize Process32Next");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "Module32FirstW", &Hooks::hk_module_32_firstW, NULL) != MH_OK) {
-        printf("[!] Could not initialize Module32First");
+        LOG("[!] Could not initialize Module32First");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "Module32NextW", &Hooks::hk_module_32_nextW, NULL) != MH_OK) {
-        printf("[!] Could not initialize Module32Next");
+        LOG("[!] Could not initialize Module32Next");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "Thread32First", &Hooks::hk_thread_32_first, NULL) != MH_OK) {
-        printf("[!] Could not initialize Thread32First");
+        LOG("[!] Could not initialize Thread32First");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
     if (MH_CreateHookApi(L"kernel32.dll", "Thread32Next", &Hooks::hk_thread_32_next, NULL) != MH_OK) {
-        printf("[!] Could not initialize Thread32Next");
+        LOG("[!] Could not initialize Thread32Next");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
 
     if (!mem.Init(false, false)) {
-        printf("[!] Could not initialize DMA");
+        LOG("[!] Could not initialize DMA");
         exit(1);
     };
 
 
     if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK) {
-        printf("[!] Could not enable hooks");
+        LOG("[!] Could not enable hooks");
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
 
-    printf("Hooks initialized\n");
-
+    LOG("Hooks initialized\n");
     return 0;
 }

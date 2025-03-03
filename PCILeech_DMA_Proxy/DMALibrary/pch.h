@@ -20,8 +20,8 @@
 
 #define DEBUG_INFO
 #ifdef DEBUG_INFO
-#define LOG(fmt, ...) std::printf(fmt, ##__VA_ARGS__)
-#define LOGW(fmt, ...) std::wprintf(fmt, ##__VA_ARGS__)
+#define LOG(fmt, ...) std::printf("[DMALibrary] "); std::printf(fmt, ##__VA_ARGS__); fflush(stdout)
+#define LOGW(fmt, ...) std::printf("[DMALibrary] "); std::wprintf(fmt, ##__VA_ARGS__) fflush(stdout)
 #else
 #define LOG
 #define LOGW

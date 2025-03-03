@@ -29,11 +29,11 @@ namespace Hooks
 	BOOL hk_process_32_first(HANDLE hSnapshot, LPPROCESSENTRY32 lppe)
 	{
 		info = NULL;
-		printf("[Process32FirstHook] Called with snapshot: %u\n", hSnapshot);
+		LOG("[Process32FirstHook] Called with snapshot: %u\n", hSnapshot);
 		count_processes = 0;
 		if (!VMMDLL_ProcessGetInformationAll(mem.vHandle, &info, &count_processes)) {
-			printf("[Process32FirstHook] Could not get VMDLL_ProcessGetInformationAll\n");
-			printf("Error: %u\n", GetLastError());
+			LOG("[Process32FirstHook] Could not get VMDLL_ProcessGetInformationAll\n");
+			LOG("Error: %u\n", GetLastError());
 			return false;
 		}
 		lppe->dwSize = sizeof(PROCESSENTRY32);

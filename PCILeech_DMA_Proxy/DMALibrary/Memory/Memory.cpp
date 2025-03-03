@@ -212,10 +212,12 @@ HANDLE Memory::InitProcess(std::string process_name, bool memMap, bool debug)
 		return NULL;
 	}
 	initialized_processes[current_process.hProcess].process_name = process_name;
-	if (!mem.FixCr3(current_process.hProcess))
-		std::cout << "Failed to fix CR3" << std::endl;
-	else
-		std::cout << "CR3 fixed" << std::endl;
+	if (!mem.FixCr3(current_process.hProcess)){
+		LOG("Failed to fix CR3\n");
+	} else{
+		LOG("CR3 fixed\n");
+	}
+
 
 	initialized_processes[current_process.hProcess].base_address = GetBaseDaddy(initialized_processes[current_process.hProcess].hProcess, process_name);
 	if (!initialized_processes[current_process.hProcess].base_address)
@@ -225,6 +227,7 @@ HANDLE Memory::InitProcess(std::string process_name, bool memMap, bool debug)
 	}
 
 	initialized_processes[current_process.hProcess].base_size = GetBaseSize(initialized_processes[current_process.hProcess].hProcess, process_name);
+
 	if (!initialized_processes[current_process.hProcess].base_size)
 	{
 		LOG("[!] Could not get base size!\n");

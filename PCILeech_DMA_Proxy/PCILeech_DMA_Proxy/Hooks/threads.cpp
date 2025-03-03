@@ -69,13 +69,13 @@ namespace Hooks
 
 		if (!addr)
 		{
-			printf("[!] Failed to get function address\n");
+			LOG("[!] Failed to get function address\n");
 			return { };
 		}
 
 		if (ntos_shutdown == 0 || nt_shutdown == 0)
 		{
-			printf("[!] Failed to get NtShutdownSystem address\n");
+			LOG("[!] Failed to get NtShutdownSystem address\n");
 			return { };
 		}
 
@@ -89,21 +89,21 @@ namespace Hooks
 		std::uint8_t orig_bytes[sizeof jmp_bytes];
 		if (!mem.Read(ntos_shutdown, orig_bytes, sizeof(orig_bytes), 4))
 		{
-			printf("[!] Failed to read memory to save original bytes\n", ntos_shutdown);
+			LOG("[!] Failed to read memory to save original bytes\n", ntos_shutdown);
 			return { };
 		}
 
 		// execute hook...
 		if (!mem.Write(ntos_shutdown, jmp_bytes, sizeof(jmp_bytes), 4))
 		{
-			printf("[!] Failed to write memory at 0x%p\n", ntos_shutdown);
+			LOG("[!] Failed to write memory at 0x%p\n", ntos_shutdown);
 			return { };
 		}
 
 		auto result = reinterpret_cast<T>(nt_shutdown)(args...);
 
 		if (!mem.Write(ntos_shutdown, orig_bytes, sizeof(orig_bytes), 4))
-			printf("[!] Failed to write memory at 0x%p\n", ntos_shutdown);
+			LOG("[!] Failed to write memory at 0x%p\n", ntos_shutdown);
 
 		return result;
 	}
@@ -146,13 +146,13 @@ namespace Hooks
 			ZeroMemory(str, 32);
 			if (!VMMDLL_PdbLoad(mem.vHandle, 4, module_info->vaBase, str))
 			{
-				printf("failed to load pdb\n");
+				LOG("failed to load pdb\n");
 				return 1;
 			}
 
 			if (!VMMDLL_PdbSymbolAddress(mem.vHandle, str, (LPSTR)"PsSuspendThread", &ptr))
 			{
-				printf("failed to find PsSuspendThread\n");
+				LOG("failed to find PsSuspendThread\n");
 				return 1;
 			}
 			if (ptr > 0)
@@ -177,13 +177,13 @@ namespace Hooks
 			ZeroMemory(str, 32);
 			if (!VMMDLL_PdbLoad(mem.vHandle, 4, module_info->vaBase, str))
 			{
-				printf("failed to load pdb\n");
+				LOG("failed to load pdb\n");
 				return 1;
 			}
 
 			if (!VMMDLL_PdbSymbolAddress(mem.vHandle, str, (LPSTR)"PsResumeThread", &ptr))
 			{
-				printf("failed to find PsResumeThread\n");
+				LOG("failed to find PsResumeThread\n");
 				return 1;
 			}
 			if (ptr > 0)
@@ -197,12 +197,12 @@ namespace Hooks
 	HANDLE hk_open_thread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId)
 	{
 		HANDLE hThread = 0;
-		printf("dwThreadId: %d\n", dwThreadId);
+		LOG("dwThreadId: %d\n", dwThreadId);
 		NTSTATUS status = fnPsLookupThreadByThreadId((HANDLE)dwThreadId, &hThread);
-		printf("Created Thread: %p\n", hThread);
+		LOG("Created Thread: %p\n", hThread);
 		if (status == 0)
 			return hThread;
-		printf("Returning null.. reason: %x\n", status);
+		LOG("Returning null.. reason: %x\n", status);
 		return nullptr;
 	}
 
@@ -213,10 +213,9 @@ namespace Hooks
 
 	BOOL hk_set_thread_context(HANDLE hThread, PCONTEXT pContext)
 	{
-		printf("set_thread_context\n");
-		printf("hThread: %p\n", hThread);
+		LOG("hThread: %p\n", hThread);
 		NTSTATUS status = fnPsSetContextThread(hThread, pContext, UserMode);
-		printf("status: %d\n", status);
+		LOG("status: %d\n", status);
 		return (status == 0);
 	}
 
