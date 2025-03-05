@@ -43,7 +43,7 @@ I dont know if they work yet, but im planning on doing:
 - [] Try actual cheats/dumpers
     - [x] [Aliens: Fireteam Elite Hack](https://github.com/MGreif/aliens-fireteam-elite-external-cheat-menu)
     - [x] [Aliens: Fireteam Elite UnrealEngine Dumper](https://github.com/MGreif/aliens-fireteam-elite-external-cheat-menu)
-    - [] Private CSGO external ESP (have not tried yet)
+    - [x] Private CSGO external ESP (Works but i had to manually set the window size as it got the Window automatically)
 
 - [] Hook CreateProcess and other creation api calls to automatically inject proxy DLL into them aswell
 
