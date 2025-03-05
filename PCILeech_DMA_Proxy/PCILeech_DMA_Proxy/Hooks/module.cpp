@@ -24,6 +24,7 @@ namespace Hooks
 		lpme->modBaseAddr = (BYTE*)module_info->pMap[current_module].vaBase;
 		strcpy_s(lpme->szModule, module_info->pMap[current_module].uszFullName);
 		strcpy_s(lpme->szExePath, module_info->pMap[current_module].uszText);
+		fflush(stdout);
 		return true;
 	}
 
@@ -34,6 +35,7 @@ namespace Hooks
 		memcpy_s(lppe, sizeof(MODULEENTRY32W), &interm, sizeof(MODULEENTRY32));
 		MultiByteToWideChar(CP_ACP, 0, (LPCCH)&interm.szModule, -1, lppe->szModule, MAX_PATH);
 		MultiByteToWideChar(CP_ACP, 0, (LPCCH)&interm.szExePath, -1, lppe->szExePath, MAX_PATH);
+		fflush(stdout);
 		return result;
 	}
 
@@ -52,6 +54,7 @@ namespace Hooks
 		lpme->modBaseAddr = (BYTE*)module_info->pMap[current_module].vaBase;
 		strcpy_s(lpme->szModule, module_info->pMap[current_module].uszText);
 		strcpy_s(lpme->szExePath, module_info->pMap[current_module].uszText);
+		fflush(stdout);
 		current_module++;
 		return true;
 	}
@@ -63,6 +66,7 @@ namespace Hooks
 		memcpy_s(lppe, sizeof(MODULEENTRY32W), &interm, sizeof(MODULEENTRY32));
 		MultiByteToWideChar(CP_ACP, 0, (LPCCH)&interm.szModule, -1, lppe->szModule, MAX_PATH);
 		MultiByteToWideChar(CP_ACP, 0, (LPCCH)&interm.szExePath, -1, lppe->szExePath, MAX_PATH);
+		fflush(stdout);
 		return result;
 	}
 }

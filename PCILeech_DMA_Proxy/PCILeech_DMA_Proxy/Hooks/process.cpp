@@ -23,6 +23,8 @@ namespace Hooks
 				return hProcess;
 			}
 		}
+		fflush(stdout);
+
 		return (HANDLE)0x66; // If th32ProcessID is not given, e.g. SNAPPROCESS is set
 	}
 
@@ -41,6 +43,8 @@ namespace Hooks
 		lppe->th32ProcessID = info[current_process].dwPID;
 		strcpy_s(lppe->szExeFile, info[current_process].szNameLong);
 		current_process++;
+		fflush(stdout);
+
 		return true;
 	}
 
@@ -50,6 +54,7 @@ namespace Hooks
 		BOOL result = hk_process_32_first(hSnapshot, (LPPROCESSENTRY32)&interm);
 		memcpy_s(lppe, sizeof(PROCESSENTRY32W), &interm, sizeof(PROCESSENTRY32));
 		MultiByteToWideChar(CP_ACP, 0, (LPCCH)&interm.szExeFile, -1, lppe->szExeFile, MAX_PATH);
+		fflush(stdout);
 		return result;
 	}
 
@@ -66,6 +71,7 @@ namespace Hooks
 		lppe->th32ProcessID = info[current_process].dwPID;
 		strcpy_s(lppe->szExeFile, info[current_process].szNameLong);
 		current_process++;
+		fflush(stdout);
 		return true;
 	}
 	BOOL hk_process_32_nextW(HANDLE hSnapshot, LPPROCESSENTRY32W lppe)
@@ -74,6 +80,7 @@ namespace Hooks
 		BOOL result = hk_process_32_next(hSnapshot, (LPPROCESSENTRY32)&interm);
 		memcpy_s(lppe, sizeof(PROCESSENTRY32W), &interm, sizeof(PROCESSENTRY32));
 		MultiByteToWideChar(CP_ACP, 0, (LPCCH)&interm.szExeFile, -1, lppe->szExeFile, MAX_PATH);
+		fflush(stdout);
 		return result;
 	}
 }

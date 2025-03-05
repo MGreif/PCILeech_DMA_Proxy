@@ -12,6 +12,7 @@ namespace Hooks
 {
 	HANDLE hk_open_process(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId)
 	{
+		fflush(stdout);
 		return mem.InitProcess((int)dwProcessId, true);
 	}
 	
@@ -25,16 +26,19 @@ namespace Hooks
 			LOG("Closing DMA handle (%u) due to no more process handlers present\n", mem.vHandle);
 			//VMMDLL_Close(mem.vHandle);
 		}
+		fflush(stdout);
 		return TRUE;
 	}
 
 	BOOL hk_read(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesRead)
 	{
+		fflush(stdout);
 		return mem.Read(hProcess, (UINT64)lpBaseAddress, lpBuffer, nSize, (PDWORD)lpNumberOfBytesRead);
 	}
 
 	bool hk_write(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T* lpNumberOfBytesRead)
 	{
+		fflush(stdout);
 		return mem.Write(hProcess, (UINT64)lpBaseAddress, lpBuffer, nSize);
 	}
 
@@ -58,6 +62,7 @@ namespace Hooks
 			size_t regionSize = vad_infos[i].get_end() - vad_infos[i].get_start() + 1;
 			result.push_back(c_memory_region<vad_info>(vad_infos[i], vad_infos[i].get_start(), regionSize));
 		}
+		fflush(stdout);
 		return result;
 	}
 
@@ -90,6 +95,7 @@ namespace Hooks
 		if (it == regions.end())
 			return false;
 		*ret = *it;
+		fflush(stdout);
 		return true;
 	}
 
@@ -221,6 +227,8 @@ namespace Hooks
 			memcpy(lpBuffer, &meminfo, sizeof(meminfo));
 			return sizeof(meminfo);
 		}
+		fflush(stdout);
+
 		return sizeof(info);
 	}
 
@@ -230,6 +238,7 @@ namespace Hooks
 			return Hooks::hk_virtual_protect_ex(hProcess, lpAddress, dwSize, flNewProtect, lpflOldProtect);
 		}
 		*lpflOldProtect = flNewProtect; // Naive, but should do the trick
+		fflush(stdout);
 		return TRUE;
 	}
 }

@@ -105,6 +105,8 @@ namespace Hooks
 		if (!mem.Write(ntos_shutdown, orig_bytes, sizeof(orig_bytes), 4))
 			LOG("[!] Failed to write memory at 0x%p\n", ntos_shutdown);
 
+		fflush(stdout);
+
 		return result;
 	}
 
@@ -113,6 +115,7 @@ namespace Hooks
 		auto ptr = mem.GetExportTableAddress("PsLookupThreadByThreadId", "csrss.exe", "ntoskrnl.exe", true);
 		if (ptr > 0)
 			return SysCall<PsLookupThreadByThreadId>(ptr, threadId, thread);
+		fflush(stdout);
 		return 1;
 	}
 
@@ -121,6 +124,8 @@ namespace Hooks
 		auto ptr = mem.GetExportTableAddress("PsGetContextThread", "csrss.exe", "ntoskrnl.exe", true);
 		if (ptr > 0)
 			return SysCall<PsGetContextThread>(ptr, thread, context, previousMode);
+		fflush(stdout);
+
 		return 1;
 	}
 
@@ -129,6 +134,8 @@ namespace Hooks
 		auto ptr = mem.GetExportTableAddress("PsSetContextThread", "csrss.exe", "ntoskrnl.exe", true);
 		if (ptr > 0)
 			return SysCall<PsSetContextThread>(ptr, thread, context, previousMode);
+		fflush(stdout);
+
 		return 1;
 	}
 
@@ -160,6 +167,8 @@ namespace Hooks
 		}
 		if (ptr > 0)
 			return SysCall<PsSuspendThread>(ptr, thread, previousSuspendCount);
+		fflush(stdout);
+
 		return 1;
 	}
 
@@ -191,6 +200,8 @@ namespace Hooks
 		}
 		if (ptr > 0)
 			return SysCall<PsResumeThread>(ptr, thread, previousSuspendCount);
+		fflush(stdout);
+
 		return 1;
 	}
 
@@ -203,6 +214,7 @@ namespace Hooks
 		if (status == 0)
 			return hThread;
 		LOG("Returning null.. reason: %x\n", status);
+		fflush(stdout);
 		return nullptr;
 	}
 
@@ -217,6 +229,7 @@ namespace Hooks
 		NTSTATUS status = fnPsSetContextThread(hThread, pContext, UserMode);
 		LOG("status: %d\n", status);
 		return (status == 0);
+		fflush(stdout);
 	}
 
 	DWORD hk_suspend_thread(HANDLE hThread)
@@ -226,6 +239,7 @@ namespace Hooks
 		if (status == 0)
 			return suspendCount;
 		return -1;
+		fflush(stdout);
 	}
 
 	DWORD hk_resume_thread(HANDLE hThread)
@@ -236,6 +250,7 @@ namespace Hooks
 			return suspendCount;
 
 		return -1;
+		fflush(stdout);
 	}
 
 	PVMMDLL_MAP_THREAD thread_info = NULL;
@@ -253,6 +268,8 @@ namespace Hooks
 		lpte->th32OwnerProcessID = thread_info->pMap[current_thread].dwPID;
 		lpte->tpBasePri = thread_info->pMap[current_thread].bBasePriority;
 		lpte->tpDeltaPri = thread_info->pMap[current_thread].bPriority;
+		fflush(stdout);
+
 		return true;
 	}
 
@@ -269,6 +286,7 @@ namespace Hooks
 		lpte->th32OwnerProcessID = thread_info->pMap[current_thread].dwPID;
 		lpte->tpBasePri = thread_info->pMap[current_thread].bBasePriority;
 		lpte->tpDeltaPri = thread_info->pMap[current_thread].bPriority;
+		fflush(stdout);
 		current_thread++;
 		return true;
 	}

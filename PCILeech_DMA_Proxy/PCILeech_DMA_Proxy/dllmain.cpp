@@ -51,9 +51,13 @@ void printFunctionPointers() {
     LOG("Thread32Next: 0x%p\n", Hooks::thread_32_next);
 }
 
+BOOL hk_alloc_console() {
+    return true;
+}
+
 DWORD WINAPI start_thread() {
-    //open console
     
+    // Allocating a new console messed with STDOUT, so its commented out for now...
     if (false) {
         AllocConsole();
         freopen_s((FILE**)stdin, "conin$", "r", stdin);
@@ -61,12 +65,18 @@ DWORD WINAPI start_thread() {
         freopen_s((FILE**)stdout, "conout$", "w", stderr);
     }
 
-    
-
     if (MH_Initialize() != MH_OK) {
         LOG("[!] Could not initialize hooks");
         exit(1);
     }
+
+    // Hooking Alloc Console so host process does not malform output
+    if (MH_CreateHookApi(L"kernel32.dll", "AllocConsole", &hk_alloc_console, NULL) != MH_OK) {
+        LOG("[!] Could not initialize AllocConsole");
+        VMMDLL_Close(mem.vHandle);
+        exit(1);
+    }
+
     if (MH_CreateHookApi(L"kernel32.dll", "OpenProcess", &Hooks::hk_open_process, (LPVOID*)&Hooks::open_process) != MH_OK) {
         LOG("[!] Could not initialize OpenProcess");
         VMMDLL_Close(mem.vHandle);
