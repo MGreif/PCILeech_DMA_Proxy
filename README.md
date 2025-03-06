@@ -1,7 +1,5 @@
 # PCILeech_DMA_Proxy (WIP)
 
-> This project reuses most of the logic coming from a DMA Cheat-Engine plugin, so credits go to the original creator of the DMA library (there are so many forks).
-
 PCILeech_DMA_Proxy is a DLL that can be injected into other processes to hook common Memory calls such as:
 - OpenProcess
 - CloseHandle
@@ -138,4 +136,4 @@ By using this software, you acknowledge that you are solely responsible for how 
 
 Thanks again to @ulfrisk for your amazing work on [PCILeech](https://github.com/ufrisk/pcileech), [MemProcFS](https://github.com/ufrisk/MemProcFS) and [pcileech-fpga](https://github.com/ufrisk/pcileech-fpga). This is such a powerful tool for forensics and offensive (pentest/red-team) duty.
 
-Thanks to the creator of the DMALibrary who put so much effort in seamlessly integrating common logic into lowerlevel VMM.dll calls and taking care of many additional functionality (mempages, etc...)
+Thanks to Metick, the creator of the [DMALibrary](https://github.com/Metick/DMALibrary) who put so much effort in seamlessly integrating common logic into lowerlevel VMM.dll calls and taking care of many additional functionality (mempages, etc...)
