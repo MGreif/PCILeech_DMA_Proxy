@@ -23,6 +23,12 @@ namespace Hooks
 				return hProcess;
 			}
 		}
+		
+		if (dwFlags & TH32CS_SNAPMODULE) {
+			// snapmodule was called on a process that has not been opened yet
+			return mem.InitProcess(th32ProcessID, true);
+		}
+		
 		fflush(stdout);
 
 		return (HANDLE)0x66; // If th32ProcessID is not given, e.g. SNAPPROCESS is set

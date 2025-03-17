@@ -5,7 +5,7 @@
 #include <thread>
 #include <atomic>
 #define OUTPUT_BUFFER_SIZE 1024
-#define WAIT_TIME_SECONDS 3
+#define WAIT_TIME_SECONDS 5
 #define NO_DATA_TIMEOUT_SECONDS 10
 #define DISABLE_TIMEOUT true
 
