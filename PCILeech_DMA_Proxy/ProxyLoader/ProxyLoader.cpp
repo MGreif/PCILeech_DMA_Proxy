@@ -4,12 +4,17 @@
 #include "log.hpp"
 #include <thread>
 #include <atomic>
+#include "Communication.h"
+#include "CommunicationPool.h"
 #define OUTPUT_BUFFER_SIZE 1024
-#define WAIT_TIME_SECONDS 5
+#define WAIT_TIME_SECONDS 3
 #define NO_DATA_TIMEOUT_SECONDS 10
 #define DISABLE_TIMEOUT true
 
+#define PIPE_NAME "\\\\.\\pipe\\DMA_PROXY"
+
 std::atomic<bool> gbProcessSuspended(true);
+HANDLE g_hCommunicationPipe = INVALID_HANDLE_VALUE;
 
 struct ProcessInfo {
     DWORD pid;
@@ -74,6 +79,7 @@ void displayProcessOutput(ProcessInfo proc) {
     info("Starting outputDisplay thread\n");
     while (timeoutCounter < NO_DATA_TIMEOUT_SECONDS) {
         if (!PeekNamedPipe(proc.hReadPipe, NULL, 0, NULL, &bytesAvailable, NULL)) {
+            warning("Could not peek named pipe. Process probably terminated\n");
             // Process probably terminated
             break;
         }
@@ -83,11 +89,12 @@ void displayProcessOutput(ProcessInfo proc) {
                 if (bytesRead > 0) {
                     buffer[bytesRead] = '\x00';
                     char* tempStart = buffer;
+                    // For cleaner output
                     char* newLinePos = strchr(tempStart, '\n');
                     while (newLinePos != 0) {
                         if (newLinePos == 0) break;
                         *newLinePos = '\0';
-                        std::cout << proc.pid << " >> " << tempStart << std::endl;
+                        std::cout << proc.pid << " (stdout) >> " << tempStart << std::endl;
                         tempStart = newLinePos + 1;
                         newLinePos = strchr(tempStart, '\n');
 
@@ -110,7 +117,9 @@ void displayProcessOutput(ProcessInfo proc) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
+    warning("Finished outputDisplay thread.\n");
 }
+
 
 ProcessInfo proc;
 
@@ -120,12 +129,22 @@ BOOL WINAPI consoleHandler(DWORD signal) {
     if (signal == CTRL_C_EVENT) {
         error("CTRL+C detected ... Shutting down...\n");
         TerminateProcess(proc.hProcess, 0);
+        CloseHandle(proc.hReadPipe);
+        CloseHandle(g_hCommunicationPipe);
         VMMDLL_CloseAll();
     }
 
     return TRUE;
 }
 
+
+void cleanup() {
+    if (proc.hProcess != INVALID_HANDLE_VALUE) TerminateProcess(proc.hProcess, 0);
+    if (proc.hProcess != INVALID_HANDLE_VALUE) CloseHandle(proc.hProcess);
+    if (proc.hReadPipe != INVALID_HANDLE_VALUE) CloseHandle(proc.hReadPipe);
+    if (g_hCommunicationPipe != INVALID_HANDLE_VALUE) CloseHandle(g_hCommunicationPipe);
+    VMMDLL_CloseAll();
+}
 
 int main(int argc, char** argv)
 {
@@ -149,14 +168,24 @@ int main(int argc, char** argv)
 
     proc = CreateSuspendedProcess(exe, args);
 
+    g_hCommunicationPipe = CreateNamedPipeA(PIPE_NAME, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 5, 1024, 1024, NULL, NULL);
+    if (g_hCommunicationPipe == INVALID_HANDLE_VALUE) {
+        error("Could not create communication pipe\n");
+        cleanup();
+        exit(1);
+    }
+
+    info("Created communication pipe\n");
+
+    std::thread communication(startCommunicationThread);
     std::thread outputDisplay(displayProcessOutput, proc);
 
     if (proc.pid == 0) {
         error("Could not start process");
+        cleanup();
         exit(1);
     }
 
-    HANDLE hThread;
     info("Injecting payload into %s.\n"
         "Make sure to have the DMA_Proxy DLL in an accessible location (e.g. Windows/System32 or in the process's dir).\n"
         "The DMA_Proxy DLL will load FTD3XX.dll, VMM.dll and leechcore.dll. Make sure they are accessible as well.\n",
@@ -164,8 +193,7 @@ int main(int argc, char** argv)
  
     if (!CreateRemoteThreadEx_LLAInjection(proc.hProcess, dllPath)) {
         error("Could not inject thread\n");
-        CloseHandle(proc.hProcess);
-        CloseHandle(proc.hReadPipe);
+        cleanup();
         exit(1);
     }
 
@@ -174,7 +202,7 @@ int main(int argc, char** argv)
     std::this_thread::sleep_for(std::chrono::seconds(WAIT_TIME_SECONDS)); // Small wait so injected DLL can initialize DMA
     if (ResumeThread(proc.hThread) < 0) {
         error("Could not resume thread\n");
-        printf("Error: %u\n", GetLastError());
+        cleanup();
         exit(1);
     }
     info("Resumed main thread of target process\n");
@@ -182,9 +210,6 @@ int main(int argc, char** argv)
 
     outputDisplay.join();
     info("output listener finished, cleaning up...\n");
-    TerminateProcess(proc.hProcess, 0);
-    CloseHandle(proc.hProcess);
-    CloseHandle(proc.hReadPipe);
-    VMMDLL_CloseAll();
+    cleanup();
     return 0;
 }

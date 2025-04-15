@@ -2,6 +2,7 @@
 #include "../pch.h"
 #include "InputManager.h"
 #include "Registry.h"
+#include <winternl.h>
 #include "../nt/structs.h"
 #include <stdio.h>
 #include <string>

@@ -1,5 +1,18 @@
 #pragma once
 
+/*
+typedef enum _SYSTEM_INFORMATION_CLASS {
+	SystemBasicInformation = 0,
+	SystemProcessorInformation = 1,
+	SystemPerformanceInformation = 2,
+	SystemTimeOfDayInformation = 3,
+	SystemProcessInformation = 5,
+	SystemProcessorPerformanceInformation = 8,
+	SystemHandleInformation = 16,
+	SystemModuleInformation = 11,
+	SystemThreadInformation = 9
+} SYSTEM_INFORMATION_CLASS;
+
 typedef struct _PEB_LDR_DATA
 {
 	BYTE Reserved1[8];
@@ -68,3 +81,4 @@ typedef struct _PEB
 	PVOID Reserved12[1];
 	ULONG SessionId;
 } PEB, *PPEB;
+*/

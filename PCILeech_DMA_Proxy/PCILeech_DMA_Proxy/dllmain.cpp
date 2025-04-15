@@ -6,6 +6,7 @@
 #include "Hooks/hooks.h"
 #include "DMALibrary/Memory/Memory.h"
 #include <iostream>
+#include "Communication/Communication.h"
 
 DWORD WINAPI start_thread();
 extern Memory mem;
@@ -69,7 +70,54 @@ DWORD WINAPI start_thread() {
         LOG("[!] Could not initialize hooks");
         exit(1);
     }
+    fflush(stdout);
+    HANDLE hCommunicationPipe = CreateFileA("\\\\.\\pipe\\DMA_PROXY", GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
+    if (hCommunicationPipe) {
+        char bufferOut[1024] = { 0 };
+        if (!ReadFile(hCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL)) LOG("Could not read communication pipe\n");
+        printf("Read file: %s\n", bufferOut);
+        fflush(stdout);
 
+        TransferCommand* transferCommand = nullptr;
+        if (!parseCommand(bufferOut, (Command**)&transferCommand)) {
+            LOG("Could not parse transfer command\n");
+            goto HOOKING;
+        }
+        printf("Got transfer command with named pipe: %s\n", transferCommand->namedPipeName);
+
+        HANDLE hPrivateCommunicationPipe = CreateFileA(transferCommand->namedPipeName, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
+        if (!hPrivateCommunicationPipe) 
+        {
+            LOG("Could not open private communication pipe\n");
+            goto HOOKING;
+        }
+        delete transferCommand;
+        ConnectedCommand connectedCommand = ConnectedCommand(GetCurrentProcessId());
+        BuiltCommand built = connectedCommand.build();
+
+        if (!WriteFile(hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to communication pipe\n");
+        printf("Sent connection command to server\n");
+
+        printf("Now accepting configuration commands\n");
+
+        ZeroMemory(bufferOut, COMMUNICATION_BUFFER);
+        while (ReadFile(hPrivateCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL)) {
+            printf("Received command: %s\n", bufferOut);
+            Command* cmd = nullptr;
+            if (!parseCommand(bufferOut, &cmd)) {
+                printf("Could not parse command: %s\n", bufferOut);
+                continue;
+            }
+
+            if (cmd->type == ECommandType::FINISH_SETUP) {
+                printf("Finishing setup ...\n");
+                break;
+            }
+        }
+
+    }
+HOOKING:
+    fflush(stdout);
     // Hooking Alloc Console so host process does not malform output
     if (MH_CreateHookApi(L"kernel32.dll", "AllocConsole", &hk_alloc_console, NULL) != MH_OK) {
         LOG("[!] Could not initialize AllocConsole");
@@ -112,6 +160,13 @@ DWORD WINAPI start_thread() {
         VMMDLL_Close(mem.vHandle);
         exit(1);
     }
+
+    //if (MH_CreateHookApi(L"kernel32.dll", "NtQuerySystemInformation", &Hooks::hk_nt_query_system_information, (LPVOID*)&Hooks::nt_query_system_information) != MH_OK) {
+    //    LOG("[!] Could not initialize NtQuerySystemInformation");
+    //    VMMDLL_Close(mem.vHandle);
+    //    exit(1);
+    //} // commented out for now
+
     if (MH_CreateHookApi(L"kernel32.dll", "Process32FirstW", &Hooks::hk_process_32_firstW, (LPVOID*)&Hooks::process_32_first) != MH_OK) {
         LOG("[!] Could not initialize Process32FirstW");
         VMMDLL_Close(mem.vHandle);

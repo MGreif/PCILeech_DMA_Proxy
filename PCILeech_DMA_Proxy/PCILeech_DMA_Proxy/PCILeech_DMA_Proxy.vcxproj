@@ -162,6 +162,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Communication\Communication.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="Hooks\mem.cpp" />
     <ClCompile Include="Hooks\module.cpp" />
@@ -175,6 +176,7 @@
     <Library Include="libs\vmm.lib" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Communication\Communication.h" />
     <ClInclude Include="Hooks\hooks.h" />
     <ClInclude Include="libs\leechcore.h" />
     <ClInclude Include="libs\vmm.h" />

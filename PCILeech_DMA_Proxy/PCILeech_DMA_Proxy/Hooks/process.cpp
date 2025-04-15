@@ -1,6 +1,54 @@
 #include "hooks.h"
 #include "DMALibrary/Memory/Memory.h"
 #include <string>
+#include <iostream>
+#include <ks.h>
+
+extern Memory mem;
+
+typedef VOID (*t_RtlInitUnicodeString)(
+	PUNICODE_STRING DestinationString,
+	PCWSTR SourceString
+);
+
+
+
+UNICODE_STRING CharToUnicodeString(const char* ansiStr) {
+	UNICODE_STRING unicodeStr;
+
+	static t_RtlInitUnicodeString RtlInitUnicodeString;
+
+	if (!RtlInitUnicodeString) {
+		HMODULE ntdll = GetModuleHandle("ntdll.dll");
+		t_RtlInitUnicodeString RtlInitUnicodeString = (t_RtlInitUnicodeString)GetProcAddress(ntdll, "RtlInitUnicodeString");
+	}
+
+	RtlInitUnicodeString(&unicodeStr, nullptr);
+
+	// Determine required buffer size
+	int wLen = MultiByteToWideChar(CP_ACP, 0, ansiStr, -1, NULL, 0);
+	if (wLen == 0) {
+		std::cerr << "Conversion failed!" << std::endl;
+		return unicodeStr;
+	}
+
+	// Allocate buffer
+	wchar_t* wideStr = (wchar_t*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, wLen * sizeof(wchar_t));
+	if (!wideStr) {
+		std::cerr << "Memory allocation failed!" << std::endl;
+		return unicodeStr;
+	}
+
+	// Convert to wide string
+	MultiByteToWideChar(CP_ACP, 0, ansiStr, -1, wideStr, wLen);
+
+	// Initialize UNICODE_STRING
+	unicodeStr.Buffer = wideStr;
+	unicodeStr.Length = (wLen - 1) * sizeof(WCHAR); // Exclude null-terminator
+	unicodeStr.MaximumLength = wLen * sizeof(WCHAR); // Include null-terminator
+
+	return unicodeStr;
+}
 
 namespace Hooks
 {
@@ -14,6 +62,47 @@ namespace Hooks
 	BOOL WINAPI hk_IsWow64Process(HANDLE hProcess, PBOOL Wow64Process)
 	{
 		return true;
+	}
+
+	NTSTATUS WINAPI hk_nt_query_system_information(SYSTEM_INFORMATION_CLASS SystemInformationClass, PVOID SystemInformation, ULONG SystemInformationLength, PULONG ReturnLength)
+	{
+		if (SystemInformationClass != SystemProcessInformation) return 0;
+		
+		PVMMDLL_PROCESS_INFORMATION info = NULL;
+		count_processes = 0;
+		if (!VMMDLL_ProcessGetInformationAll(mem.vHandle, &info, &count_processes)) {
+			LOG("[Process32FirstHook] Could not get VMDLL_ProcessGetInformationAll\n");
+			LOG("Error: %u\n", GetLastError());
+			return false;
+		}
+
+		SYSTEM_PROCESS_INFORMATION* processes = (SYSTEM_PROCESS_INFORMATION*)calloc(count_processes, sizeof(SYSTEM_PROCESS_INFORMATION));
+
+		for (int i = 0; i < count_processes; i++) {
+			processes[i].BasePriority = { KSPRIORITY_NORMAL };
+			processes[i].HandleCount = 2;
+			processes[i].UniqueProcessId = (HANDLE)info[i].dwPID;
+			if (i < count_processes - 1)processes[i].NextEntryOffset = (ULONG)&processes[i + 1];
+			processes[i].ImageName = CharToUnicodeString(info[i].szNameLong);
+			processes[i].PeakVirtualSize = info[i].wSize;
+			processes[i].NumberOfThreads = 2;
+			processes[i].PagefileUsage = 10;
+			processes[i].PeakPagefileUsage = 20;
+			processes[i].VirtualSize = info[i].wSize;
+			processes[i].PeakWorkingSetSize = 20;
+			processes[i].WorkingSetSize = 10;
+			processes[i].PrivatePageCount = 0;
+			processes[i].QuotaNonPagedPoolUsage = 0;
+			processes[i].QuotaPagedPoolUsage = 0;
+		}
+
+		fflush(stdout);
+
+		if (SystemInformation != nullptr) {
+			*(SYSTEM_PROCESS_INFORMATION**)SystemInformation = processes;
+		}
+
+		return 0;
 	}
 
 	HANDLE hk_create_tool_help_32_snapshot(DWORD dwFlags, DWORD th32ProcessID)

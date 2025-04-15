@@ -24,6 +24,12 @@
     <ClCompile Include="CreateRemoteThreadEx_LLA.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Communication.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CommunicationPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libs\hooks.h">
@@ -45,6 +51,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CreateRemoteThreadEx_LLA.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Communication.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CommunicationPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

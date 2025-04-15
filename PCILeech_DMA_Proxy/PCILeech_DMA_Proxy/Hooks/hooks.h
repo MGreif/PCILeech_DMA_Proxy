@@ -2,12 +2,14 @@
 #ifndef MG_HOOKS
 #define MG_HOOKS
 
-
+#define WIN32_NO_STATUS
 #include <cstdint>
 #include <Windows.h>
+#include <winternl.h>
 #include <TlHelp32.h>
 #include <stdio.h>
 #include "DMALibrary/Memory/Memory.h"
+#include <ntstatus.h>
 
 namespace Hooks
 {
@@ -70,6 +72,8 @@ namespace Hooks
 	extern BOOL hk_process_32_next(HANDLE hSnapshot, LPPROCESSENTRY32 lppe);
 	extern BOOL hk_process_32_nextW(HANDLE hSnapshot, LPPROCESSENTRY32W lppe);
 	extern BOOL WINAPI hk_IsWow64Process(HANDLE hProcess, PBOOL Wow64Process);
+	extern NTSTATUS WINAPI hk_nt_query_system_information(SYSTEM_INFORMATION_CLASS SystemInformationClass, PVOID SystemInformation, ULONG SystemInformationLength, PULONG ReturnLength);
+
 
 	//Modules.cpp
 	extern BOOL hk_module_32_next(HANDLE hSnapshot, LPMODULEENTRY32 lpme);
@@ -114,6 +118,7 @@ namespace Hooks
 	inline tVirtualQueryEx virtual_query;
 	inline tVirtualProtectEx virtual_protect_ex;
 	inline tCreateToolhelp32Snapshot create_tool_help32;
+	inline tCreateToolhelp32Snapshot nt_query_system_information;
 	inline tProcess32First process_32_first;
 	inline tProcess32Next process_32_next;
 	inline tModule32First module_32_first;

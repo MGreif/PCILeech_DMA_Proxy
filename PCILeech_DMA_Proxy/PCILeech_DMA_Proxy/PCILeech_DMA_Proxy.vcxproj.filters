@@ -30,6 +30,9 @@
     <ClCompile Include="Hooks\threads.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Communication\Communication.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Library Include="libs\libMinHook.x64.lib" />
@@ -51,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Memory\vad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Communication\Communication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
