@@ -56,7 +56,7 @@ void startPrivateCommunicationThread() {
                 char testBuffer[] = "ABC:ABC:123";
                 if (!WriteFile(partner->getPipe(), testBuffer, sizeof(testBuffer), NULL, NULL)) break;
                 testBuffer[2] = '1';
-                if (!WriteFile(partner->getPipe(), testBuffer, sizeof(testBuffer), NULL, NULL)) break;
+                if (!WriteFile(partner->getPipe(), FinishSetupCommand().build().serialized, sizeof(FinishSetupCommand().build().serialized), NULL, NULL)) break;
                 testBuffer[2] = '2';
                 if (!WriteFile(partner->getPipe(), testBuffer, sizeof(testBuffer), NULL, NULL)) break;
                 testBuffer[2] = '3';

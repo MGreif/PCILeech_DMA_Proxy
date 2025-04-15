@@ -7,7 +7,7 @@
 #include "Communication.h"
 #include "CommunicationPool.h"
 #define OUTPUT_BUFFER_SIZE 1024
-#define WAIT_TIME_SECONDS 3
+#define WAIT_TIME_SECONDS 2
 #define NO_DATA_TIMEOUT_SECONDS 10
 #define DISABLE_TIMEOUT true
 

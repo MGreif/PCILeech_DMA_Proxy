@@ -10,6 +10,9 @@ ECommandType parseType(char* buffer) {
     else if (strncmp(buffer, COMMAND_TRANSFER_LITERAL, strlen(COMMAND_TRANSFER_LITERAL)) == 0) {
         return ECommandType::TRANSFER;
     }
+    else if (strncmp(buffer, COMMAND_FINISH_SETUP_LITERAL, strlen(COMMAND_FINISH_SETUP_LITERAL)) == 0) {
+        return ECommandType::FINISH_SETUP;
+    }
     return ECommandType::INVALID;
 }
 
