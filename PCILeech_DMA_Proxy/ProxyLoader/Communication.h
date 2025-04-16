@@ -5,7 +5,9 @@
 #define COMMAND_CONNECTED_LITERAL "C"
 #define COMMAND_TRANSFER_LITERAL "T"
 #define COMMAND_FINISH_SETUP_LITERAL "F"
+#define COMMAND_NO_HOOKING_LITERAL "N"
 #define COMMAND_DELIMITER ':'
+#define COMMAND_END ';'
 
 #define OUT
 #define OUT_REPLACED
@@ -15,9 +17,10 @@
 
 
 enum ECommandType {
-	TRANSFER, //Server->Client 9999:T:<named-pipe-name>
-	CONNECTED, //Client->Server <pid>:C:
-	FINISH_SETUP, // Server->Client 9999:F:
+	TRANSFER, //Server->Client 9999:T:<named-pipe-name>;
+	CONNECTED, //Client->Server <pid>:C:;
+	FINISH_SETUP, // Server->Client 9999:F:;
+	NO_HOOKING, // Server->Client 9999:N:<specifier>; // Specifier is one of threads,console,modules,process,mem
 	INVALID,
 };
 
@@ -61,8 +64,29 @@ public:
 	}
 	BuiltCommand build() {
 		BuiltCommand builtCommand;
-		sprintf_s(builtCommand.serialized, "%u:C:", pid);
+		sprintf_s(builtCommand.serialized, "%u:C:;", pid);
 		return builtCommand;
+	}
+};
+
+class NoHookingCommand : public Command {
+	char specifier[COMMUNICATION_BUFFER - 20] = { 0 };
+public:
+	NoHookingCommand() : Command(9999) {
+		type = ECommandType::NO_HOOKING;
+	}
+	BuiltCommand build() {
+		BuiltCommand builtCommand;
+		sprintf_s(builtCommand.serialized, "%u:N:%s;", pid, specifier);
+
+		return builtCommand;
+	}
+	NoHookingCommand* setSpecifier(const char specifier[COMMUNICATION_BUFFER - 20]) {
+		strncpy_s(this->specifier, specifier, strlen(specifier));
+		return this;
+	}
+	char* getSpecifier() {
+		return specifier;
 	}
 };
 
@@ -73,7 +97,7 @@ public:
 	}
 	BuiltCommand build() {
 		BuiltCommand builtCommand;
-		sprintf_s(builtCommand.serialized, "%u:F:", pid);
+		sprintf_s(builtCommand.serialized, "%u:F:;", pid);
 		return builtCommand;
 	}
 };
@@ -90,7 +114,7 @@ public:
 	}
 	BuiltCommand build() {
 		BuiltCommand builtCommand;
-		sprintf_s(builtCommand.serialized, "9999:T:%s", namedPipeName);
+		sprintf_s(builtCommand.serialized, "9999:T:%s;", namedPipeName);
 		return builtCommand;
 	}
 	TransferCommand* from(char serialized[COMMUNICATION_BUFFER]) {

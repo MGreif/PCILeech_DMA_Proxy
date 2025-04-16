@@ -13,6 +13,9 @@ ECommandType parseType(char* buffer) {
     else if (strncmp(buffer, COMMAND_FINISH_SETUP_LITERAL, strlen(COMMAND_FINISH_SETUP_LITERAL)) == 0) {
         return ECommandType::FINISH_SETUP;
     }
+    else if (strncmp(buffer, COMMAND_NO_HOOKING_LITERAL, strlen(COMMAND_NO_HOOKING_LITERAL)) == 0) {
+        return ECommandType::NO_HOOKING;
+    }
     return ECommandType::INVALID;
 }
 
@@ -28,6 +31,12 @@ bool handleTransfer(CommandPayload* payload, OUT_REPLACED Command** command) {
 
 bool handleFinishSetup(CommandPayload* payload, OUT_REPLACED Command** command) {
     *command = new FinishSetupCommand();
+    return true;
+}
+
+bool handleNoHooking(CommandPayload* payload, OUT_REPLACED Command** command) {
+    *command = new NoHookingCommand();
+    ((NoHookingCommand*)command)->setSpecifier(*(char**)payload->content);
     return true;
 }
 
@@ -65,6 +74,10 @@ bool parseCommand(char* buffer, OUT_REPLACED Command** command) {
     }
     case FINISH_SETUP: {
         if (!handleFinishSetup((CommandPayload*)&thirdChunk, command)) return false;
+        break;
+    }
+    case NO_HOOKING: {
+        if (!handleNoHooking((CommandPayload*)&thirdChunk, command)) return false;
         break;
     }
     }

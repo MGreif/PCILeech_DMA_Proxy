@@ -12,7 +12,10 @@ std::thread hPrivateCommunicationThread;
 
 void startPrivateCommunicationThread() {
     int counter = 0;
+    // Iterate through all communicationPartners for non-blocking better performance
     while (g_CommunicationPool.count() > 0) {
+
+        fflush(stdout);
         if (counter >= g_CommunicationPool.count()) counter = 0;
         CommunicationPartner* partner = g_CommunicationPool.get(counter++);
         if (partner == nullptr) continue;
@@ -41,28 +44,36 @@ void startPrivateCommunicationThread() {
             continue;
         }
 
+
         if (bytesAvailable > 0) {
             char buffer[COMMUNICATION_BUFFER] = { 0 };
             if (!ReadFile(partner->getPipe(), buffer, sizeof(buffer), NULL, NULL)) error("Could not read private communication pipe\n");
             info("Read from private pipe: %s\n", buffer);
-            Command* cmd = nullptr;
-            parseCommand(buffer, &cmd);
+            fflush(stdout);
 
-            switch (cmd->type) {
-            case CONNECTED: {
-                info("Connected new process: %u\n", (ConnectedCommand*)cmd->pid);
-                partner->setPid(((ConnectedCommand*)cmd)->pid);
-                //Testing
-                char testBuffer[] = "ABC:ABC:123";
-                if (!WriteFile(partner->getPipe(), testBuffer, sizeof(testBuffer), NULL, NULL)) break;
-                testBuffer[2] = '1';
-                if (!WriteFile(partner->getPipe(), FinishSetupCommand().build().serialized, sizeof(FinishSetupCommand().build().serialized), NULL, NULL)) break;
-                testBuffer[2] = '2';
-                if (!WriteFile(partner->getPipe(), testBuffer, sizeof(testBuffer), NULL, NULL)) break;
-                testBuffer[2] = '3';
-                if (!WriteFile(partner->getPipe(), testBuffer, sizeof(testBuffer), NULL, NULL)) break;
-                break;
-            }
+            char* commandEnd = strchr(buffer, COMMAND_END);
+            char* commandStart = buffer;
+            while (commandEnd != nullptr) {
+                *commandEnd = '\00';
+                Command* cmd = nullptr;
+                parseCommand(commandStart, &cmd);
+
+                switch (cmd->type) {
+                case CONNECTED: {
+                    info("Connected new process: %u\n", (ConnectedCommand*)cmd->pid);
+                    partner->setPid(((ConnectedCommand*)cmd)->pid);
+                    // Setup
+
+                    // The following 2 lines are for testing
+                    //char* noMemoryHookCommand = NoHookingCommand().setSpecifier("mem")->build().serialized;
+                    //if (!WriteFile(partner->getPipe(), noMemoryHookCommand, strlen(noMemoryHookCommand), NULL, NULL)) break;
+                    if (!WriteFile(partner->getPipe(), FinishSetupCommand().build().serialized, strlen(FinishSetupCommand().build().serialized), NULL, NULL)) break;
+                    break;
+                }
+                }
+
+                commandStart = commandEnd + 1;
+                commandEnd = strchr(commandStart, COMMAND_END);
             }
 
         }
@@ -73,32 +84,37 @@ void startPrivateCommunicationThread() {
 
 void startCommunicationThread() {
     info("Starting communication thread... id: %d\n", GetCurrentThreadId());
-        while (g_hCommunicationPipe != INVALID_HANDLE_VALUE && ConnectNamedPipe(g_hCommunicationPipe, NULL)) {
-            info("Client connected to pipe\n");
-            CommunicationPartner* newPartner = new CommunicationPartner();
-            info("Initializing transfer to private pipe\n");
+    // Wait for connection on the main pipe
+    // These connections are then used just for one command to each communication partner
+    // This commands issue a transfer to a freshly created private communication channel
+    while (g_hCommunicationPipe != INVALID_HANDLE_VALUE && ConnectNamedPipe(g_hCommunicationPipe, NULL)) {
+        info("Client connected to pipe\n");
+        // CommunicationPartner constructor takes care of creating and removing the pipe
+        CommunicationPartner* newPartner = new CommunicationPartner();
+        debug("Initializing transfer to private pipe\n");
 
-            if (!newPartner->getPipe()) {
-                error("New partners pipe is invalid\n");
-                continue;
-            }
+        if (!newPartner->getPipe()) {
+            error("New partners pipe is invalid\n");
+            continue;
+        }
 
-            TransferCommand command = TransferCommand(newPartner->getPipeName());
+        TransferCommand command = TransferCommand(newPartner->getPipeName());
 
 
-            g_CommunicationPool.add(newPartner);
-            info("Added partner to communication pool\n");
+        g_CommunicationPool.add(newPartner);
+        debug("Added partner to communication pool\n");
 
-            if (g_PrivateCommunicationThreadStarted.load() == false) {
-                info("Starting private communication thread\n");
-                hPrivateCommunicationThread = std::thread(startPrivateCommunicationThread);
-                g_PrivateCommunicationThreadStarted.store(true);
-            }
+        if (g_PrivateCommunicationThreadStarted.load() == false) {
+            debug("Starting private communication thread\n");
+            hPrivateCommunicationThread = std::thread(startPrivateCommunicationThread);
+            g_PrivateCommunicationThreadStarted.store(true);
+        }
 
-            // First stage: client send <pid>:connected
-            if (!WriteFile(g_hCommunicationPipe, command.build().serialized, COMMUNICATION_BUFFER, NULL, NULL)) {
-                error("Could not write to file. Broken communication protocol\n");
-            }
-            info("Sent transfer command\n");
+        // First stage: client send 9999:T:<private-named-pipe>
+        // This issues a transfer to the new private pipe
+        if (!WriteFile(g_hCommunicationPipe, command.build().serialized, COMMUNICATION_BUFFER, NULL, NULL)) {
+            error("Could not write to file. Broken communication protocol\n");
+        }
+        debug("Sent transfer command\n");
     }
 }
