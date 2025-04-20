@@ -50,7 +50,8 @@ private:
 
 public:
 	PrivateCommunicationChannel* communicationPartner;
-
+	HANDLE hProcess = INVALID_HANDLE_VALUE;
+	HANDLE hMainThread = INVALID_HANDLE_VALUE;
 	Process() {
 		
 	}
@@ -104,7 +105,7 @@ public:
 		DWORD locked = WaitForSingleObject(hMutex, 1000);
 		switch (locked) {
 		case WAIT_OBJECT_0:
-			debug("Added process pid %d to pool\n", process->getPid());
+			debug("Added process pid %u and main tid %u to pool\n", process->getPid(), process->getTid());
 			processList.push_back(process);
 		}
 		ReleaseMutex(hMutex);

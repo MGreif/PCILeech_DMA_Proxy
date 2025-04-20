@@ -16,6 +16,7 @@
 std::atomic<bool> gbProcessSuspended(true);
 HANDLE g_hCommunicationPipe = INVALID_HANDLE_VALUE;
 extern ProcessPool g_ProcessPool;
+char* g_dllPath = nullptr;
 
 Process* g_pFirstProcess;
 
@@ -157,7 +158,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    char* dllPath = argv[1];
+    g_dllPath = argv[1];
     std::string exe = argv[2];
     std::string args;
     for (int i = 3; i < argc; ++i) {
@@ -179,10 +180,12 @@ int main(int argc, char** argv)
     Process newProcess = Process();
     newProcess.setPid(proc.ids.pid);
     newProcess.setTid(proc.ids.tid);
+    newProcess.hProcess = proc.hProcess;
+    newProcess.hMainThread = proc.hThread;
     g_ProcessPool.add(&newProcess);
     g_pFirstProcess = &newProcess;
 
-    g_hCommunicationPipe = CreateNamedPipeA(PIPE_NAME, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 5, 1024, 1024, NULL, NULL);
+    g_hCommunicationPipe = CreateNamedPipeA(PIPE_NAME, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, 1024, 1024, NULL, NULL);
     if (g_hCommunicationPipe == INVALID_HANDLE_VALUE) {
         error("Could not create communication pipe\n");
         cleanup();
@@ -205,7 +208,7 @@ int main(int argc, char** argv)
         "The DMA_Proxy DLL will load FTD3XX.dll, VMM.dll and leechcore.dll. Make sure they are accessible as well.\n",
         exe.c_str());
  
-    if (!CreateRemoteThreadEx_LLAInjection(proc.hProcess, dllPath)) {
+    if (!CreateRemoteThreadEx_LLAInjection(proc.hProcess, g_dllPath)) {
         error("Could not inject thread\n");
         cleanup();
         exit(1);

@@ -53,7 +53,7 @@ bool handleReadyForResume(CommandPayload* payload, OUT_REPLACED Command** comman
 
 bool handleNewProcess(CommandPayload* payload, OUT_REPLACED Command** command) {
     char payloadContentClone[COMMUNICATION_BUFFER - 20];
-    memcpy(payloadContentClone, payload->content, strlen(payload->content));
+    memcpy(payloadContentClone, *(char**)payload->content, strlen(*(char**)payload->content));
     char tidString[16] = { 0 };
     char pidString[16] = { 0 };
     char* firstDelimiter = strchr(payloadContentClone, COMMAND_DELIMITER);
@@ -106,6 +106,10 @@ bool parseCommand(char* buffer, OUT_REPLACED Command** command) {
     }
     case READY_FOR_RESUME: {
         if (!handleReadyForResume((CommandPayload*)&thirdChunk, command)) return false;
+        break;
+    }
+    case NEW_PROCESS: {
+        if (!handleNewProcess((CommandPayload*)&thirdChunk, command)) return false;
         break;
     }
     }

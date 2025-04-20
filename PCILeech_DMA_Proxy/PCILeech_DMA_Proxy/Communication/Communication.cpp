@@ -19,6 +19,9 @@ ECommandType parseType(char* buffer) {
     else if (strncmp(buffer, COMMAND_READY_FOR_RESUME_LITERAL, strlen(COMMAND_READY_FOR_RESUME_LITERAL)) == 0) {
         return ECommandType::READY_FOR_RESUME;
     }
+    else if (strncmp(buffer, COMMAND_NEW_PROCESS_LITERAL, strlen(COMMAND_NEW_PROCESS_LITERAL)) == 0) {
+        return ECommandType::NEW_PROCESS;
+    }
     return ECommandType::INVALID;
 }
 
@@ -45,6 +48,19 @@ bool handleNoHooking(CommandPayload* payload, OUT_REPLACED Command** command) {
 
 bool handleReadyForResume(CommandPayload* payload, OUT_REPLACED Command** command) {
     *command = new ReadyForResumeCommand();
+    return true;
+}
+
+bool handleNewProcess(CommandPayload* payload, OUT_REPLACED Command** command) {
+    char payloadContentClone[COMMUNICATION_BUFFER - 20];
+    memcpy(payloadContentClone, payload->content, strlen(payload->content));
+    char tidString[16] = { 0 };
+    char pidString[16] = { 0 };
+    char* firstDelimiter = strchr(payloadContentClone, COMMAND_DELIMITER);
+    *firstDelimiter = '\00';
+    strncpy_s(pidString, payloadContentClone, strlen(payloadContentClone));
+    strncpy_s(tidString, firstDelimiter + 1, strlen(firstDelimiter + 1));
+    *command = new NewProcessCommand(strtoull(pidString, nullptr, 10), strtoull(tidString, nullptr, 10));
     return true;
 }
 

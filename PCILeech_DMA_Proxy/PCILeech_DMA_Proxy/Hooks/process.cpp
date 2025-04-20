@@ -3,6 +3,8 @@
 #include <string>
 #include <iostream>
 #include <ks.h>
+#include "Communication/Communication.h"
+#define LOG(fmt, ...) {printf("[Proxy] ");std::printf(fmt, ##__VA_ARGS__); fflush(stdout);};
 #define LOGW(fmt, ...) {wprintf(L"[Proxy] ");std::wprintf(fmt, ##__VA_ARGS__); fflush(stdout);};
 
 extern Memory mem;
@@ -108,6 +110,7 @@ namespace Hooks
 		return 0;
 	}
 
+	// This hooks just takes care of ANSI to WIDE conversion and then calls the WIDE function
 	BOOL hk_create_process_a(
 		_In_opt_ LPCSTR lpApplicationName,
 		_Inout_opt_ LPSTR lpCommandLine,
@@ -152,9 +155,16 @@ namespace Hooks
 		_Out_ LPPROCESS_INFORMATION lpProcessInformation
 	) {
 		fflush(stdout);
-		BOOL result = create_process_w(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
-		LOGW(L"NEW PROCESS STARTED %s %s with PID: %u and main TID: %u\n", lpApplicationName, lpCommandLine, lpProcessInformation->dwProcessId, lpProcessInformation->dwThreadId);
 
+		DWORD suspendedCreationFlags = dwCreationFlags | CREATE_SUSPENDED; // Add suspended flag so the ProxyLoader can inject the DLL as usual
+
+		BOOL result = create_process_w(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, suspendedCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+		LOGW(L"NEW PROCESS STARTED SUSPENDED %s %s with PID: %u and main TID: %u\n", lpApplicationName, lpCommandLine, lpProcessInformation->dwProcessId, lpProcessInformation->dwThreadId);
+		NewProcessCommand newProcessCommand = NewProcessCommand(lpProcessInformation->dwProcessId, lpProcessInformation->dwThreadId);
+		if (!WriteFile(g_hPrivateCommunicationPipe, newProcessCommand.build().serialized, strlen(newProcessCommand.build().serialized), NULL, NULL)) {
+			LOG("Could not write to private communication pipe\n");
+		}
+		LOG("Sent NEW_PROCESS command to ProxyLoader\n");
 		return result;
 	}
 

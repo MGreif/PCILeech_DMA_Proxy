@@ -3,8 +3,10 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
-extern inline int g_CommunicationPartnerCounter = 0;
+#include "CreateRemoteThreadEx_LLA.h"
 
+extern inline int g_CommunicationPartnerCounter = 0;
+extern char* g_dllPath;
 extern HANDLE g_hCommunicationPipe;
 extern Process *g_pFirstProcess;
 ProcessPool g_ProcessPool = ProcessPool();
@@ -60,12 +62,14 @@ void startPrivateCommunicationThread() {
                 Command* cmd = nullptr;
                 parseCommand(commandStart, &cmd);
 
+                if (cmd->type != CONNECTED) {
+                    if (channel->pCarryingProcess->getPid() != cmd->pid) {
+                        error("Private Communication Channel sent a command with a PID (%u) that is not the PID (%u) of the associated process. Aborting....\n", cmd->pid, channel->pCarryingProcess->getPid());
+                        continue;
+                    }
+                }
 
-
-                switch (cmd->type) {
-                // case NEW_PROCESS // This creates the new process in the ProxyLoader TODO
-                                                      // Check if channel has associated process
-
+                switch (cmd->type) {                
                 case CONNECTED: {
                     // We presume the Process has already been created
                     ConnectedCommand* connectedCommand = (ConnectedCommand*)cmd;
@@ -74,11 +78,11 @@ void startPrivateCommunicationThread() {
                     Process* associatedProcess = g_ProcessPool.getByPid(connectedCommand->pid);
                     if (associatedProcess == nullptr) {
                         warning("Connect command from unknown process received pid: %u\n", connectedCommand->pid);
-                        continue;
+                        break;
                     }
                     if (!associatedProcess->addCommunicationPartner(channel)) {
                         warning("Not setting new communication channel!\n");
-                        continue;
+                        break;
                     }
 
                     // Assign process pointer backlink
@@ -94,9 +98,40 @@ void startPrivateCommunicationThread() {
                     if (!WriteFile(channel->getPipe(), FinishSetupCommand().build().serialized, strlen(FinishSetupCommand().build().serialized), NULL, NULL)) break;
                     break;
                 }
-                              case READY_FOR_RESUME:
-                                  break;
-                                  // Check if channel has associated process
+                case NEW_PROCESS: // This creates the new process in the ProxyLoader TODO
+                {
+                    NewProcessCommand* newProcessCommand = (NewProcessCommand*)cmd;
+                    info("New process seems to have started with pid: %u and tid: %u\n", newProcessCommand->newProcessPid, newProcessCommand->newProcessTid);
+
+                    // Adding process to process pool
+                    Process* newProcess = new Process();
+                    newProcess->setPid(newProcessCommand->newProcessPid);
+                    newProcess->setTid(newProcessCommand->newProcessTid);
+                    g_ProcessPool.add(newProcess);
+
+                    HANDLE hNewProcess = OpenProcess(PROCESS_VM_WRITE | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION, false, newProcess->getPid());
+                    HANDLE hNewProcessMainThread = OpenThread(PROCESS_VM_WRITE | PROCESS_SUSPEND_RESUME | PROCESS_VM_OPERATION, false, newProcess->getTid());
+
+                    if (hNewProcess == INVALID_HANDLE_VALUE || hNewProcessMainThread == INVALID_HANDLE_VALUE) {
+                        error("Could not open process or thread handle\n");
+                        break;
+                    }
+
+                    newProcess->hProcess = hNewProcess;
+                    newProcess->hMainThread = hNewProcessMainThread;
+                    // Injecting DLL
+                    if (!CreateRemoteThreadEx_LLAInjection(hNewProcess, g_dllPath)) {
+                        error("Could not inject thread\n");
+                        exit(1);
+                    }
+                    info("Successfully injected dll into process pid %u\n", newProcess->getPid());
+                    break;
+
+                }
+                case READY_FOR_RESUME:
+                    break;
+                case INVALID:
+                    warning("Could not parse command %s\n", commandStart);
                 }
 
                 commandStart = commandEnd + 1;
@@ -104,7 +139,7 @@ void startPrivateCommunicationThread() {
             }
 
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     warning("Private communication thread stopped\n");
 }

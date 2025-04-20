@@ -130,12 +130,14 @@ DWORD WINAPI start_thread() {
     fflush(stdout);
 
     // Connecting to ProxyLoader via named pipe
-    HANDLE hCommunicationPipe = CreateFileA("\\\\.\\pipe\\DMA_PROXY", GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
-    if (hCommunicationPipe) {
+    HANDLE hCommunicationPipe = CreateFileA("\\\\.\\pipe\\DMA_PROXY", GENERIC_ALL, NULL, NULL, OPEN_EXISTING, NULL, NULL);
+    if (hCommunicationPipe != INVALID_HANDLE_VALUE) {
 
         // When first connected to the main pipe, the ProxyLoader instantly issues a TransferCommand to switch to a private communication pipe
         char bufferOut[1024] = { 0 };
-        if (!ReadFile(hCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL)) LOG("Could not read communication pipe\n");
+        if (!ReadFile(hCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL)) {
+            LOG("Could not read communication pipe. Error: %u\n", GetLastError());
+        }
         char* commandEnd = strchr(bufferOut, COMMAND_END);
         *commandEnd = '\0';
         char* commandStart = bufferOut;
@@ -197,7 +199,7 @@ DWORD WINAPI start_thread() {
         }
     }
     else {
-        LOG("Named pipe not found. Either something crashed or this DLL was manually injected\n");
+        LOG("Named pipe not found. Either something crashed or this DLL was manually injected. Error %u\n", GetLastError());
     }
 HOOKING:
     LOG("Starting hooking phase\n");
