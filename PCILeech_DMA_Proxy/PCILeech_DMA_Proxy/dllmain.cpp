@@ -11,7 +11,8 @@
 DWORD WINAPI start_thread();
 extern Memory mem;
 #define LOG(fmt, ...) {printf("[Proxy] ");std::printf(fmt, ##__VA_ARGS__); fflush(stdout);};
-
+#define LOGW(fmt, ...) {wprintf(L"[Proxy] ");std::wprintf(fmt, ##__VA_ARGS__); fflush(stdout);};
+HANDLE g_hPrivateCommunicationPipe = INVALID_HANDLE_VALUE;
 
 
 
@@ -21,10 +22,12 @@ struct Configuration {
     boolean hookThreads;
     boolean hookModules;
     boolean hookAllocConsole;
+    boolean initDMA;
 };
 
 // All true by default
 static Configuration g_Configuration = {
+    true,
     true,
     true,
     true,
@@ -46,6 +49,9 @@ void handleNoHookingCommand(NoHookingCommand* cmd) {
     }
     else if (strncmp(cmd->getSpecifier(), "console", sizeof("console")) == 0) {
         g_Configuration.hookAllocConsole = false;
+    }
+    else if (strncmp(cmd->getSpecifier(), "dma", sizeof("dma")) == 0) {
+        g_Configuration.initDMA = false;
     }
 }
 
@@ -84,6 +90,8 @@ void printFunctionPointers() {
         LOG("VirtualProtectEx: 0x%p\n", Hooks::virtual_protect_ex);
     }
     if (g_Configuration.hookProcess) {
+        LOG("CreateProcessW: 0x%p\n", Hooks::create_process_w);
+        LOG("CreateProcessA: 0x%p\n", Hooks::create_process_a);
         LOG("CreateToolhelp32Snapshot: 0x%p\n", Hooks::create_tool_help32);
         LOG("Process32First: 0x%p\n", Hooks::process_32_first);
         LOG("Process32Next: 0x%p\n", Hooks::process_32_next);
@@ -140,8 +148,8 @@ DWORD WINAPI start_thread() {
         }
         LOG("Got transfer command with named pipe: %s\n", transferCommand->namedPipeName);
 
-        HANDLE hPrivateCommunicationPipe = CreateFileA(transferCommand->namedPipeName, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
-        if (!hPrivateCommunicationPipe) 
+        g_hPrivateCommunicationPipe = CreateFileA(transferCommand->namedPipeName, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
+        if (!g_hPrivateCommunicationPipe) 
         {
             LOG("Could not open private communication pipe\n");
             goto HOOKING;
@@ -152,13 +160,13 @@ DWORD WINAPI start_thread() {
         ConnectedCommand connectedCommand = ConnectedCommand(GetCurrentProcessId(), GetCurrentThreadId());
         BuiltCommand built = connectedCommand.build();
 
-        if (!WriteFile(hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
+        if (!WriteFile(g_hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
 
         // Currently there is no acknowledgement whatsoever, we just hope windows does a good job :shrug:
 
         LOG("Now accepting configuration commands\n");
         ZeroMemory(bufferOut, COMMUNICATION_BUFFER);
-        while (!g_bFinishedSetup && ReadFile(hPrivateCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL) ) {
+        while (!g_bFinishedSetup && ReadFile(g_hPrivateCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL) ) {
             char* commandEnd = strchr(bufferOut, COMMAND_END);
             char* commandStart = bufferOut;
             LOG("Received command buffer: %s\n", bufferOut);
@@ -242,6 +250,18 @@ HOOKING:
     if (g_Configuration.hookProcess) {
         LOG("Hooking process\n");
 
+        if (MH_CreateHookApi(L"kernel32.dll", "CreateProcessW", &Hooks::hk_create_process_w, (LPVOID*)&Hooks::create_process_w) != MH_OK) {
+            LOG("[!] Could not initialize CreateProcessW");
+            VMMDLL_Close(mem.vHandle);
+            exit(1);
+        }
+
+        if (MH_CreateHookApi(L"kernel32.dll", "CreateProcessA", &Hooks::hk_create_process_a, (LPVOID*)&Hooks::create_process_a) != MH_OK) {
+            LOG("[!] Could not initialize CreateProcessA");
+            VMMDLL_Close(mem.vHandle);
+            exit(1);
+        }
+
         if (MH_CreateHookApi(L"kernel32.dll", "CreateToolhelp32Snapshot", &Hooks::hk_create_tool_help_32_snapshot, (LPVOID*)&Hooks::create_tool_help32) != MH_OK) {
             LOG("[!] Could not initialize CreateToolhelp32Snapshot");
             VMMDLL_Close(mem.vHandle);
@@ -300,12 +320,12 @@ HOOKING:
     LOG("Original Functions:\n");
     printFunctionPointers();
 
-
-    if (!mem.Init(false, false)) {
-        LOG("[!] Could not initialize DMA");
-        exit(1);
-    };
-
+    if (g_Configuration.initDMA) {
+        if (!mem.Init(false, false)) {
+            LOG("[!] Could not initialize DMA. Terminating Process\n");
+            exit(1);
+        };
+    }
 
     if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK) {
         LOG("[!] Could not enable hooks");

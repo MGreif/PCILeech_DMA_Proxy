@@ -3,8 +3,10 @@
 #include <string>
 #include <iostream>
 #include <ks.h>
+#define LOGW(fmt, ...) {wprintf(L"[Proxy] ");std::wprintf(fmt, ##__VA_ARGS__); fflush(stdout);};
 
 extern Memory mem;
+extern HANDLE g_hPrivateCommunicationPipe;
 
 typedef VOID (*t_RtlInitUnicodeString)(
 	PUNICODE_STRING DestinationString,
@@ -64,6 +66,7 @@ namespace Hooks
 		return true;
 	}
 
+	// Not finished yet
 	NTSTATUS WINAPI hk_nt_query_system_information(SYSTEM_INFORMATION_CLASS SystemInformationClass, PVOID SystemInformation, ULONG SystemInformationLength, PULONG ReturnLength)
 	{
 		if (SystemInformationClass != SystemProcessInformation) return 0;
@@ -103,6 +106,56 @@ namespace Hooks
 		}
 
 		return 0;
+	}
+
+	BOOL hk_create_process_a(
+		_In_opt_ LPCSTR lpApplicationName,
+		_Inout_opt_ LPSTR lpCommandLine,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes,
+		_In_ BOOL bInheritHandles,
+		_In_ DWORD dwCreationFlags,
+		_In_opt_ LPVOID lpEnvironment,
+		_In_opt_ LPCWSTR lpCurrentDirectory,
+		_In_ LPSTARTUPINFOA lpStartupInfo,
+		_Out_ LPPROCESS_INFORMATION lpProcessInformation
+	) {
+		// ANSI to WIDE (UTF-16 LE) conversion
+		WCHAR wApplicationName[MAX_PATH] = L"";
+		if (lpApplicationName != nullptr) {
+			MultiByteToWideChar(CP_ACP, 0, (LPCCH)lpApplicationName, -1, wApplicationName, MAX_PATH);
+		}
+
+		WCHAR wCommandLine[MAX_PATH] = L"";
+		if (lpCommandLine != nullptr) {
+			MultiByteToWideChar(CP_ACP, 0, (LPCCH)lpCommandLine, -1, wCommandLine, MAX_PATH);
+		}
+
+		STARTUPINFOW wsa = { 0 };
+		memcpy(&wsa, lpStartupInfo, sizeof(wsa));
+		MultiByteToWideChar(CP_ACP, 0, (LPCCH)lpStartupInfo->lpTitle, -1, wsa.lpTitle, MAX_PATH);
+
+		BOOL result = hk_create_process_w(lpApplicationName == nullptr ? nullptr : wApplicationName, lpCommandLine ==  nullptr ? nullptr : wCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, &wsa, lpProcessInformation);
+		return result;
+	}
+
+	BOOL hk_create_process_w(
+		_In_opt_ LPCWSTR lpApplicationName,
+		_Inout_opt_ LPWSTR lpCommandLine,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes,
+		_In_ BOOL bInheritHandles,
+		_In_ DWORD dwCreationFlags,
+		_In_opt_ LPVOID lpEnvironment,
+		_In_opt_ LPCWSTR lpCurrentDirectory,
+		_In_ LPSTARTUPINFOW lpStartupInfo,
+		_Out_ LPPROCESS_INFORMATION lpProcessInformation
+	) {
+		fflush(stdout);
+		BOOL result = create_process_w(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+		LOGW(L"NEW PROCESS STARTED %s %s with PID: %u and main TID: %u\n", lpApplicationName, lpCommandLine, lpProcessInformation->dwProcessId, lpProcessInformation->dwThreadId);
+
+		return result;
 	}
 
 	HANDLE hk_create_tool_help_32_snapshot(DWORD dwFlags, DWORD th32ProcessID)

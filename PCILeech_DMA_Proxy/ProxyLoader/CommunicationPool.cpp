@@ -87,8 +87,8 @@ void startPrivateCommunicationThread() {
                     info("Correlated dangling channel %p with process %u\n", channel, connectedCommand->pid);
 
                     // The following 2 lines are for testing
-                    //char* noMemoryHookCommand = NoHookingCommand().setSpecifier("mem")->build().serialized;
-                    //if (!WriteFile(process->communicationPartner.getPipe(), noMemoryHookCommand, strlen(noMemoryHookCommand), NULL, NULL)) break;
+                    char* noMemoryHookCommand = NoHookingCommand().setSpecifier("dma")->build().serialized;
+                    if (!WriteFile(channel->getPipe(), noMemoryHookCommand, strlen(noMemoryHookCommand), NULL, NULL)) break;
 
                     // Sending FinishSetup command so the DLL continues execution and does not wait for more commands
                     if (!WriteFile(channel->getPipe(), FinishSetupCommand().build().serialized, strlen(FinishSetupCommand().build().serialized), NULL, NULL)) break;

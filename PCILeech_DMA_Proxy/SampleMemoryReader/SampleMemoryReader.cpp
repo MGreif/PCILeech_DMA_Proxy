@@ -29,8 +29,8 @@ int main(int argc, char** argv)
 		char command[1024] = { 0 };
 		sprintf_s(command, "%s\\SampleMemoryReader.exe %s %s %s", CurrentDir, argv[1], argv[2], newIterations);
 		printf("Starting new iteration: %s\n", command);
-		STARTUPINFOA sa;
-		PROCESS_INFORMATION pa;
+		STARTUPINFOA sa = { 0 };
+		PROCESS_INFORMATION pa = { 0 };
 		sa.cb = sizeof(sa);
 		if (!CreateProcessA(NULL, command, NULL, NULL, false, NULL, NULL, NULL, &sa, &pa)) {
 			printf("Could not create process. Error %u\n", GetLastError());

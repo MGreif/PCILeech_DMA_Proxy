@@ -66,6 +66,30 @@ namespace Hooks
 	extern BOOL hk_virtual_protect_ex(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
 
 	//Process.cpp
+	extern BOOL hk_create_process_w(
+		_In_opt_ LPCWSTR lpApplicationName,
+		_Inout_opt_ LPWSTR lpCommandLine,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes,
+		_In_ BOOL bInheritHandles,
+		_In_ DWORD dwCreationFlags,
+		_In_opt_ LPVOID lpEnvironment,
+		_In_opt_ LPCWSTR lpCurrentDirectory,
+		_In_ LPSTARTUPINFOW lpStartupInfo,
+		_Out_ LPPROCESS_INFORMATION lpProcessInformation
+	);
+	extern BOOL hk_create_process_a(
+		_In_opt_ LPCSTR lpApplicationName,
+		_Inout_opt_ LPSTR lpCommandLine,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes,
+		_In_ BOOL bInheritHandles,
+		_In_ DWORD dwCreationFlags,
+		_In_opt_ LPVOID lpEnvironment,
+		_In_opt_ LPCWSTR lpCurrentDirectory,
+		_In_ LPSTARTUPINFOA lpStartupInfo,
+		_Out_ LPPROCESS_INFORMATION lpProcessInformation
+	);
 	extern HANDLE hk_create_tool_help_32_snapshot(DWORD dwFlags, DWORD th32ProcessID);
 	extern BOOL hk_process_32_first(HANDLE hSnapshot, LPPROCESSENTRY32 lppe);
 	extern BOOL hk_process_32_firstW(HANDLE hSnapshot, LPPROCESSENTRY32W lppe);
@@ -97,6 +121,30 @@ namespace Hooks
 
 	// Define function pointer typedefs
 	typedef HANDLE(WINAPI* tOpenProcess)(DWORD, BOOL, DWORD);
+	typedef BOOL(WINAPI* tCreateProcessW) (
+		_In_opt_ LPCWSTR lpApplicationName,
+		_Inout_opt_ LPWSTR lpCommandLine,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes,
+		_In_ BOOL bInheritHandles,
+		_In_ DWORD dwCreationFlags,
+		_In_opt_ LPVOID lpEnvironment,
+		_In_opt_ LPCWSTR lpCurrentDirectory,
+		_In_ LPSTARTUPINFOW lpStartupInfo,
+		_Out_ LPPROCESS_INFORMATION lpProcessInformation
+		);
+	typedef BOOL(WINAPI* tCreateProcessA) (
+		_In_opt_ LPCSTR lpApplicationName,
+		_Inout_opt_ LPSTR lpCommandLine,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpProcessAttributes,
+		_In_opt_ LPSECURITY_ATTRIBUTES lpThreadAttributes,
+		_In_ BOOL bInheritHandles,
+		_In_ DWORD dwCreationFlags,
+		_In_opt_ LPVOID lpEnvironment,
+		_In_opt_ LPCWSTR lpCurrentDirectory,
+		_In_ LPSTARTUPINFOA lpStartupInfo,
+		_Out_ LPPROCESS_INFORMATION lpProcessInformation
+		);
 	typedef BOOL(WINAPI* tCloseHandle)(HANDLE);
 	typedef BOOL(WINAPI* tReadProcessMemory)(HANDLE, LPCVOID, LPVOID, SIZE_T, SIZE_T*);
 	typedef BOOL(WINAPI* tWriteProcessMemory)(HANDLE, LPVOID, LPCVOID, SIZE_T, SIZE_T*);
@@ -112,6 +160,8 @@ namespace Hooks
 
 	// Declare function pointers
 	inline tOpenProcess open_process;
+	inline tCreateProcessW create_process_w;
+	inline tCreateProcessA create_process_a;
 	inline tCloseHandle close_handle;
 	inline tReadProcessMemory read_process_memory;
 	inline tWriteProcessMemory write_process_memory;

@@ -58,8 +58,8 @@ bool handleNewProcess(CommandPayload* payload, OUT_REPLACED Command** command) {
     char pidString[16] = { 0 };
     char* firstDelimiter = strchr(payloadContentClone, COMMAND_DELIMITER);
     *firstDelimiter = '\00';
-    strncpy(pidString, payloadContentClone, strlen(payloadContentClone));
-    strncpy(tidString, firstDelimiter+1, strlen(firstDelimiter+1));
+    strncpy_s(pidString, payloadContentClone, strlen(payloadContentClone));
+    strncpy_s(tidString, firstDelimiter+1, strlen(firstDelimiter+1));
     *command = new NewProcessCommand(strtoull(pidString, nullptr, 10), strtoull(tidString, nullptr, 10));
     return true;
 }
