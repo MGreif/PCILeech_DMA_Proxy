@@ -157,8 +157,11 @@ namespace Hooks
 		fflush(stdout);
 
 		DWORD suspendedCreationFlags = dwCreationFlags | CREATE_SUSPENDED; // Add suspended flag so the ProxyLoader can inject the DLL as usual
+		lpStartupInfo->hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+		lpStartupInfo->hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+		lpStartupInfo->dwFlags |= STARTF_USESTDHANDLES;
 
-		BOOL result = create_process_w(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, suspendedCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+		BOOL result = create_process_w(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, true, suspendedCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 		LOGW(L"NEW PROCESS STARTED SUSPENDED %s %s with PID: %u and main TID: %u\n", lpApplicationName, lpCommandLine, lpProcessInformation->dwProcessId, lpProcessInformation->dwThreadId);
 		NewProcessCommand newProcessCommand = NewProcessCommand(lpProcessInformation->dwProcessId, lpProcessInformation->dwThreadId);
 		if (!WriteFile(g_hPrivateCommunicationPipe, newProcessCommand.build().serialized, strlen(newProcessCommand.build().serialized), NULL, NULL)) {

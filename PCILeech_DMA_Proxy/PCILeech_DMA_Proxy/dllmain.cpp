@@ -130,33 +130,9 @@ DWORD WINAPI start_thread() {
     fflush(stdout);
 
     // Connecting to ProxyLoader via named pipe
-    HANDLE hCommunicationPipe = CreateFileA("\\\\.\\pipe\\DMA_PROXY", GENERIC_ALL, NULL, NULL, OPEN_EXISTING, NULL, NULL);
-    if (hCommunicationPipe != INVALID_HANDLE_VALUE) {
-
-        // When first connected to the main pipe, the ProxyLoader instantly issues a TransferCommand to switch to a private communication pipe
-        char bufferOut[1024] = { 0 };
-        if (!ReadFile(hCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL)) {
-            LOG("Could not read communication pipe. Error: %u\n", GetLastError());
-        }
-        char* commandEnd = strchr(bufferOut, COMMAND_END);
-        *commandEnd = '\0';
-        char* commandStart = bufferOut;
-        fflush(stdout);
-
-        TransferCommand* transferCommand = nullptr;
-        if (!parseCommand(commandStart, (Command**)&transferCommand)) {
-            LOG("Could not parse transfer command\n");
-            goto HOOKING;
-        }
-        LOG("Got transfer command with named pipe: %s\n", transferCommand->namedPipeName);
-
-        g_hPrivateCommunicationPipe = CreateFileA(transferCommand->namedPipeName, GENERIC_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, NULL, NULL);
-        if (!g_hPrivateCommunicationPipe) 
-        {
-            LOG("Could not open private communication pipe\n");
-            goto HOOKING;
-        }
-        delete transferCommand;
+    g_hPrivateCommunicationPipe = CreateFileA("\\\\.\\pipe\\DMA_PROXY", GENERIC_ALL, NULL, NULL, OPEN_EXISTING, NULL, NULL);
+    char bufferOut[COMMUNICATION_BUFFER] = { 0 };
+    if (g_hPrivateCommunicationPipe != INVALID_HANDLE_VALUE) {
 
         // Sending a ConnectedCommand with the current processId
         ConnectedCommand connectedCommand = ConnectedCommand(GetCurrentProcessId(), GetCurrentThreadId());
@@ -189,6 +165,12 @@ DWORD WINAPI start_thread() {
                 }
                 case NO_HOOKING: {
                     handleNoHookingCommand((NoHookingCommand*)&cmd);
+                    break;
+                }
+                case SEND_HANDLE: {
+                    SendHandleCommand* sendHandleCommand = (SendHandleCommand*)cmd;
+                    mem.vHandle = (VMM_HANDLE)sendHandleCommand->handle;
+                    LOG("Received handle from ProxyLoader\n");
                 }
                 }
             END_COMMAND_PROCESS:
@@ -327,16 +309,26 @@ HOOKING:
             LOG("[!] Could not initialize DMA. Terminating Process\n");
             exit(1);
         };
+        LOG("%d\n", mem.vHandle);
+        PassHandleCommand passHandleCommand = PassHandleCommand(mem.vHandle);
+        BuiltCommand built = passHandleCommand.build();
+        if (!WriteFile(g_hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
+        LOG("Passed vHandle to ProxyLoader\n");
     }
+
 
     if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK) {
         LOG("[!] Could not enable hooks");
         VMMDLL_Close(mem.vHandle);
+        mem.vHandle;
         exit(1);
     }
 
+    LOG("Hooks initialized. Sending Resume Command\n");
+    ReadyForResumeCommand resumeCommand = ReadyForResumeCommand();
+    BuiltCommand built = resumeCommand.build();
 
+    if (!WriteFile(g_hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
 
-    LOG("Hooks initialized\n");
     return 0;
 }

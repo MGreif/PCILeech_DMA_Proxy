@@ -3,11 +3,12 @@
 #define COMMUNICATION_BUFFER 1024
 
 #define COMMAND_CONNECTED_LITERAL "C"
-#define COMMAND_TRANSFER_LITERAL "T"
 #define COMMAND_FINISH_SETUP_LITERAL "F"
 #define COMMAND_NO_HOOKING_LITERAL "N"
 #define COMMAND_READY_FOR_RESUME_LITERAL "R"
 #define COMMAND_NEW_PROCESS_LITERAL "P"
+#define COMMAND_PASS_HANDLE_LITERAL "PH"
+#define COMMAND_SEND_HANDLE_LITERAL "SH"
 #define COMMAND_DELIMITER ':'
 #define COMMAND_END ';'
 
@@ -19,12 +20,13 @@
 
 
 enum ECommandType {
-	TRANSFER, //Server->Client 9999:T:<named-pipe-name>;
 	CONNECTED, //Client->Server <pid>:C:<proxy-thread-id>;
 	FINISH_SETUP, // Server->Client 9999:F:;
 	NO_HOOKING, // Server->Client 9999:N:<specifier>; // Specifier is one of threads,console,modules,process,mem,dma
 	READY_FOR_RESUME, // Client->Server <oid>:R:;
 	NEW_PROCESS, // Client->Server <owner-pid>:P:<newprocess-pid>:<newprocess-main-tid>
+	PASS_HANDLE, // Client->Server <owner-pid>:PH:<dma-handle>
+	SEND_HANDLE, // Server->Client 9999:SH:<dma-handle>
 	INVALID,
 };
 
@@ -59,7 +61,7 @@ public:
 		type = ECommandType::INVALID;
 	}
 };
-
+bool parseCommand(char* buffer, OUT_REPLACED Command** command);
 class ConnectedCommand : public Command {
 public:
 	unsigned int tid = 0;
@@ -72,6 +74,36 @@ public:
 	BuiltCommand build() {
 		BuiltCommand builtCommand;
 		sprintf_s(builtCommand.serialized, "%u:C:%u;", pid, tid);
+		return builtCommand;
+	}
+};
+
+class PassHandleCommand : public Command {
+public:
+	HANDLE handle = 0;
+
+	PassHandleCommand(HANDLE _handle) : Command(GetCurrentProcessId()) {
+		type = ECommandType::PASS_HANDLE;
+		handle = _handle;
+	}
+	BuiltCommand build() {
+		BuiltCommand builtCommand;
+		sprintf_s(builtCommand.serialized, "%u:PH:%u;", pid, handle);
+		return builtCommand;
+	}
+};
+
+class SendHandleCommand : public Command {
+public:
+	HANDLE handle = 0;
+
+	SendHandleCommand(HANDLE _handle) : Command(9999) {
+		type = ECommandType::SEND_HANDLE;
+		handle = _handle;
+	}
+	BuiltCommand build() {
+		BuiltCommand builtCommand;
+		sprintf_s(builtCommand.serialized, "%u:SH:%u;", pid, handle);
 		return builtCommand;
 	}
 };
@@ -133,29 +165,6 @@ public:
 		BuiltCommand builtCommand;
 		sprintf_s(builtCommand.serialized, "%u:P:%u:%u;", pid, newProcessPid, newProcessTid);
 		return builtCommand;
-	}
-};
-
-bool parseCommand(char* buffer, OUT_REPLACED Command** command);
-
-class TransferCommand :public Command {
-	ECommandType type = ECommandType::TRANSFER;
-public:
-	char namedPipeName[32] = { 0 };
-	TransferCommand(char _namedPipeName[32]) : Command(0) {
-		strncpy_s(namedPipeName, _namedPipeName, strlen(_namedPipeName));
-		fflush(stdout);
-	}
-	BuiltCommand build() {
-		BuiltCommand builtCommand;
-		sprintf_s(builtCommand.serialized, "9999:T:%s;", namedPipeName);
-		return builtCommand;
-	}
-	TransferCommand* from(char serialized[COMMUNICATION_BUFFER]) {
-		TransferCommand* newCommand = nullptr;
-
-		parseCommand(serialized, (Command**)&newCommand);
-		return newCommand;
 	}
 };
 

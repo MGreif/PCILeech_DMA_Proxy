@@ -29,10 +29,10 @@ int main(int argc, char** argv)
 		char command[1024] = { 0 };
 		sprintf_s(command, "%s\\SampleMemoryReader.exe %s %s %s", CurrentDir, argv[1], argv[2], newIterations);
 		printf("Starting new iteration: %s\n", command);
-		STARTUPINFOA sa = { 0 };
+		STARTUPINFOA si = { 0 };
 		PROCESS_INFORMATION pa = { 0 };
-		sa.cb = sizeof(sa);
-		if (!CreateProcessA(NULL, command, NULL, NULL, false, NULL, NULL, NULL, &sa, &pa)) {
+		si.cb = sizeof(si);
+		if (!CreateProcessA(NULL, command, NULL, NULL, false, NULL, NULL, NULL, &si, &pa)) {
 			printf("Could not create process. Error %u\n", GetLastError());
 		}
 		else {
@@ -40,12 +40,12 @@ int main(int argc, char** argv)
 		}
 	}
 
-	HANDLE hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION, 0, pid);
+	HANDLE hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION, false, pid);
 
 	printf("Got process handle: 0x%p\n", hProcess);
 
 	if (!hProcess) {
-		printf("[!] Failed getting process\n");
+		printf("[!] Failed getting process. Error %u\n", GetLastError());
 		exit(1);
 	}
 
@@ -142,11 +142,9 @@ int main(int argc, char** argv)
 	}
 
 	printf("New value of %p is 0x%x\n", vaddr, out);
+	Sleep(10000);
 	fflush(stdout);
 	CloseHandle(hProcess);
-
-
-
 
 
 	return 0;

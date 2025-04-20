@@ -20,7 +20,6 @@ namespace Hooks
 		if (!isDMAProcessHandle(handle)) {
 			return Hooks::close_handle(handle);
 		}
-		//BOOL result = mem.initialized_processes.erase(handle) > 0;
 
 		if (mem.initialized_processes.size() == 0) {
 			LOG("Closing DMA handle (%u) due to no more process handlers present\n", mem.vHandle);

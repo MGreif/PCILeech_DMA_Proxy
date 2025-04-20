@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include "log.hpp"
 #include <vector>
-inline int g_CommunicationPartnerCounter;
-void startCommunicationThread();
 
 struct RemoteProcessInfo {
 	DWORD pid;
@@ -20,9 +18,11 @@ class PrivateCommunicationChannel {
 	bool pipeConnected = false;
 public:
 	Process* pCarryingProcess = nullptr;
+	int pipeNotConnectedRetryCounter = 0;
+	const static int pipeNotConnectedRetryTimeout = 1000; // This should be matched with the loop sleep interval to match X seconds
 	PrivateCommunicationChannel() {
-		sprintf_s(privatePipeName, "\\\\.\\pipe\\DMA_PROXY%d", g_CommunicationPartnerCounter++);
-		privatePipe = CreateNamedPipeA(privatePipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 5, 1024, 1024, 10000, NULL);
+		sprintf_s(privatePipeName, "\\\\.\\pipe\\DMA_PROXY");
+		privatePipe = CreateNamedPipeA(privatePipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, 1024, 1024, 10000, NULL);
 		if (privatePipe == INVALID_HANDLE_VALUE) error("Could not create private pipe\n");
 		info("New communicationPartner with pipe name: %s and handle %p\n", privatePipeName, privatePipe);
 	}
@@ -94,10 +94,11 @@ public:
 
 class ProcessPool {
 private:
-	std::vector<Process*> processList = std::vector<Process*>();
 	HANDLE hMutex = INVALID_HANDLE_VALUE;
 
 public:
+	std::vector<Process*> processList = std::vector<Process*>();
+
 	ProcessPool() {
 		hMutex = CreateMutexA(NULL, FALSE, NULL);
 	}

@@ -13,12 +13,12 @@
 
 #define PIPE_NAME "\\\\.\\pipe\\DMA_PROXY"
 
-std::atomic<bool> gbProcessSuspended(true);
 HANDLE g_hCommunicationPipe = INVALID_HANDLE_VALUE;
 extern ProcessPool g_ProcessPool;
 char* g_dllPath = nullptr;
+extern std::vector<PrivateCommunicationChannel*> g_PrivateCommunicationChannels;
 
-Process* g_pFirstProcess;
+extern void startPrivateCommunicationThread();
 
 struct ProcessInfo {
     RemoteProcessInfo ids;
@@ -114,7 +114,7 @@ void displayProcessOutput(ProcessInfo proc) {
             warning("Pipe broke. Process probably terminated\n");
             break;
         }
-        else if (!DISABLE_TIMEOUT && !gbProcessSuspended.load()) {
+        else if (!DISABLE_TIMEOUT) {
             if (timeoutCounter == 0 || timeoutCounter == ((NO_DATA_TIMEOUT_SECONDS - NO_DATA_TIMEOUT_SECONDS % 2) / 2) || (NO_DATA_TIMEOUT_SECONDS - timeoutCounter) < 3) {
                 warning("No bytes available. Maybe provide stdin? %d seconds until exit ...\n", NO_DATA_TIMEOUT_SECONDS - timeoutCounter);
             }
@@ -133,8 +133,12 @@ BOOL WINAPI consoleHandler(DWORD signal) {
 
     if (signal == CTRL_C_EVENT) {
         error("CTRL+C detected ... Shutting down...\n");
-        TerminateProcess(proc.hProcess, 0);
-        CloseHandle(proc.hReadPipe);
+        for (auto p : g_ProcessPool.processList) {
+            TerminateProcess(p->hProcess, 0);
+            CloseHandle(p->communicationPartner->getPipe());
+            CloseHandle(p->hMainThread);
+            CloseHandle(p->hProcess);
+        }
         CloseHandle(g_hCommunicationPipe);
         VMMDLL_CloseAll();
     }
@@ -174,28 +178,24 @@ int main(int argc, char** argv)
     proc = CreateSuspendedProcess(exe, args);
 
     // Creating first process
-    // Its added to the process pool to be later corelated to a private communication channel
-    // Once the process connects to the public channel, gets transfered to a private and then sends a connected command with its
-    // process id (the one of the created process) and main thread id (not the one the injected DLL is executed in)
     Process newProcess = Process();
     newProcess.setPid(proc.ids.pid);
     newProcess.setTid(proc.ids.tid);
     newProcess.hProcess = proc.hProcess;
     newProcess.hMainThread = proc.hThread;
     g_ProcessPool.add(&newProcess);
-    g_pFirstProcess = &newProcess;
 
-    g_hCommunicationPipe = CreateNamedPipeA(PIPE_NAME, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, 1024, 1024, NULL, NULL);
-    if (g_hCommunicationPipe == INVALID_HANDLE_VALUE) {
-        error("Could not create communication pipe\n");
-        cleanup();
-        exit(1);
-    }
+    // Creating first communication channel for initial process
+    auto channel = PrivateCommunicationChannel();
+    g_PrivateCommunicationChannels.push_back(&channel);
+    newProcess.addCommunicationPartner(&channel);
+    channel.pCarryingProcess = &newProcess;
 
-    info("Created communication pipe\n");
+    info("Created private communication pipe for initial process\n");
 
-    std::thread communication(startCommunicationThread);
+    std::thread communication(startPrivateCommunicationThread);
     std::thread outputDisplay(displayProcessOutput, proc);
+    info("Started private communication thread and display process output thread\n");
 
     if (proc.ids.pid == 0) {
         error("Could not start process");
@@ -213,17 +213,6 @@ int main(int argc, char** argv)
         cleanup();
         exit(1);
     }
-
-
-    info("Resuming process in %u seconds so DMA/VMM can initialize...\n", WAIT_TIME_SECONDS);
-    std::this_thread::sleep_for(std::chrono::seconds(WAIT_TIME_SECONDS)); // Small wait so injected DLL can initialize DMA
-    if (ResumeThread(proc.hThread) < 0) {
-        error("Could not resume thread\n");
-        cleanup();
-        exit(1);
-    }
-    info("Resumed main thread of target process\n");
-    gbProcessSuspended.store(false);
 
     outputDisplay.join();
     info("output listener finished, cleaning up...\n");

@@ -7,12 +7,13 @@
 
 extern inline int g_CommunicationPartnerCounter = 0;
 extern char* g_dllPath;
-extern HANDLE g_hCommunicationPipe;
-extern Process *g_pFirstProcess;
 ProcessPool g_ProcessPool = ProcessPool();
 std::vector<PrivateCommunicationChannel*> g_PrivateCommunicationChannels = std::vector<PrivateCommunicationChannel*>();
 std::atomic<bool> g_PrivateCommunicationThreadStarted(false);
+std::atomic<bool> g_bDMAInitialized(false);
 std::thread hPrivateCommunicationThread;
+
+HANDLE g_VMMHandle = INVALID_HANDLE_VALUE;
 
 void startPrivateCommunicationThread() {
     int counter = 0;
@@ -25,7 +26,7 @@ void startPrivateCommunicationThread() {
         if (channel == nullptr) continue;
 
         if (!channel->isPipeConnected()) {
-            info("Waiting for private pipe connection on pipe %p %s...\n", channel->getPipe(), channel->getPipeName());
+            info("Waiting for private pipe connection on pipe %p %s on process %u...\n", channel->getPipe(), channel->getPipeName(), channel->pCarryingProcess->getPid());
             BOOL connected = ConnectNamedPipe(channel->getPipe(), NULL) ?
                 TRUE : (GetLastError() == ERROR_PIPE_CONNECTED);
             if (connected) {
@@ -34,8 +35,7 @@ void startPrivateCommunicationThread() {
             }
             else {
                 DWORD err = GetLastError();
-                warning("ConnectNamedPipe failed. Error: %lu on pipe %p %s\n", err, channel->getPipe(), channel->getPipeName());
-                std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+                warning("ConnectNamedPipe failed. Error: %lu on pipe %p %s on process %u\n", err, channel->getPipe(), channel->getPipeName(), channel->pCarryingProcess->getPid());
                 continue;
             }
 
@@ -43,8 +43,11 @@ void startPrivateCommunicationThread() {
 
         DWORD bytesAvailable = 0;
         if (!PeekNamedPipe(channel->getPipe(), NULL, 0, NULL, &bytesAvailable, NULL)) {
-            warning("Could not peek private named pipe. Pipe probably terminated\n");
+            warning("Could not peek private named pipe of process %u. Pipe probably terminated\n", channel->pCarryingProcess->getPid());
             channel->setPipeConnected(false);
+            
+            g_PrivateCommunicationChannels.erase(std::remove(g_PrivateCommunicationChannels.begin(), g_PrivateCommunicationChannels.end(), channel), g_PrivateCommunicationChannels.end());
+            warning("Removed channel from channel pool\n");
             continue;
         }
 
@@ -60,6 +63,7 @@ void startPrivateCommunicationThread() {
             while (commandEnd != nullptr) {
                 *commandEnd = '\00';
                 Command* cmd = nullptr;
+
                 parseCommand(commandStart, &cmd);
 
                 if (cmd->type != CONNECTED) {
@@ -80,19 +84,23 @@ void startPrivateCommunicationThread() {
                         warning("Connect command from unknown process received pid: %u\n", connectedCommand->pid);
                         break;
                     }
-                    if (!associatedProcess->addCommunicationPartner(channel)) {
-                        warning("Not setting new communication channel!\n");
-                        break;
-                    }
 
                     // Assign process pointer backlink
-                    channel->pCarryingProcess = associatedProcess;
                     associatedProcess->setProxyTid(connectedCommand->tid);
-                    info("Correlated dangling channel %p with process %u\n", channel, connectedCommand->pid);
 
-                    // The following 2 lines are for testing
-                    char* noMemoryHookCommand = NoHookingCommand().setSpecifier("dma")->build().serialized;
-                    if (!WriteFile(channel->getPipe(), noMemoryHookCommand, strlen(noMemoryHookCommand), NULL, NULL)) break;
+                    if (!g_bDMAInitialized.load()) {
+                        g_bDMAInitialized.store(true);
+                    }
+                    else {
+                        char* noMemoryHookCommand = NoHookingCommand().setSpecifier("dma")->build().serialized;
+                        if (!WriteFile(channel->getPipe(), noMemoryHookCommand, strlen(noMemoryHookCommand), NULL, NULL)) break;
+                        if (g_VMMHandle != INVALID_HANDLE_VALUE) {
+                            //char* sendHandleCommand = SendHandleCommand(g_VMMHandle).build().serialized;
+                            //if (!WriteFile(channel->getPipe(), sendHandleCommand, strlen(sendHandleCommand), NULL, NULL)) break;
+                            info("Send VMMHandle to process pid %u\n", channel->pCarryingProcess->getPid());
+                        }
+
+                    }
 
                     // Sending FinishSetup command so the DLL continues execution and does not wait for more commands
                     if (!WriteFile(channel->getPipe(), FinishSetupCommand().build().serialized, strlen(FinishSetupCommand().build().serialized), NULL, NULL)) break;
@@ -110,7 +118,7 @@ void startPrivateCommunicationThread() {
                     g_ProcessPool.add(newProcess);
 
                     HANDLE hNewProcess = OpenProcess(PROCESS_VM_WRITE | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION, false, newProcess->getPid());
-                    HANDLE hNewProcessMainThread = OpenThread(PROCESS_VM_WRITE | PROCESS_SUSPEND_RESUME | PROCESS_VM_OPERATION, false, newProcess->getTid());
+                    HANDLE hNewProcessMainThread = OpenThread(PROCESS_VM_WRITE | PROCESS_SUSPEND_RESUME | PROCESS_VM_OPERATION | THREAD_RESUME, false, newProcess->getTid());
 
                     if (hNewProcess == INVALID_HANDLE_VALUE || hNewProcessMainThread == INVALID_HANDLE_VALUE) {
                         error("Could not open process or thread handle\n");
@@ -119,6 +127,11 @@ void startPrivateCommunicationThread() {
 
                     newProcess->hProcess = hNewProcess;
                     newProcess->hMainThread = hNewProcessMainThread;
+                    
+                    auto channel = new PrivateCommunicationChannel();
+                    newProcess->addCommunicationPartner(channel);
+                    channel->pCarryingProcess = newProcess;
+                    g_PrivateCommunicationChannels.push_back(channel);
                     // Injecting DLL
                     if (!CreateRemoteThreadEx_LLAInjection(hNewProcess, g_dllPath)) {
                         error("Could not inject thread\n");
@@ -129,7 +142,27 @@ void startPrivateCommunicationThread() {
 
                 }
                 case READY_FOR_RESUME:
+                {
+                    DWORD resumed = ResumeThread(channel->pCarryingProcess->hMainThread);
+                    if (resumed == -1) {
+                        error("Failed resuming pid %u tid %u\n", channel->pCarryingProcess->getPid(), channel->pCarryingProcess->getTid());
+                        break;
+                    }
+                    else {
+                        info("Resumed %d threads in process %u thread %u\n", resumed, channel->pCarryingProcess->getPid(), channel->pCarryingProcess->getTid());
+
+                    }
                     break;
+                }
+                case PASS_HANDLE:{
+                    PassHandleCommand* passHandleCommand = (PassHandleCommand*)cmd;
+                    info("Received VMM handle %u\n", passHandleCommand->handle);
+                    if (g_VMMHandle != INVALID_HANDLE_VALUE) {
+                        warning("Handle already set. Overwriting it!\n");
+                    }
+                    g_VMMHandle = passHandleCommand->handle;
+                    break;
+                }
                 case INVALID:
                     warning("Could not parse command %s\n", commandStart);
                 }
@@ -139,46 +172,7 @@ void startPrivateCommunicationThread() {
             }
 
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     warning("Private communication thread stopped\n");
-}
-
-
-void startCommunicationThread() {
-    info("Starting communication thread... id: %d\n", GetCurrentThreadId());
-    // Wait for connection on the main pipe
-    // These connections are then used just for one command to each communication channel
-    // This commands issue a transfer to a freshly created private communication channel
-    while (g_hCommunicationPipe != INVALID_HANDLE_VALUE && ConnectNamedPipe(g_hCommunicationPipe, NULL)) {
-        info("Client connected to pipe\n");
-
-        // CommunicationPartner constructor takes care of creating and removing the pipe
-        PrivateCommunicationChannel* newPartner = new PrivateCommunicationChannel();
-        g_PrivateCommunicationChannels.push_back(newPartner);
-
-        debug("Initializing transfer to private pipe\n");
-
-        if (!newPartner->getPipe()) {
-            error("New channels pipe is invalid\n");
-            continue;
-        }
-
-        TransferCommand command = TransferCommand(newPartner->getPipeName());
-
-        debug("Added dangling communication channel %p\n", newPartner);
-
-        if (g_PrivateCommunicationThreadStarted.load() == false) {
-            debug("Starting private communication thread\n");
-            hPrivateCommunicationThread = std::thread(startPrivateCommunicationThread);
-            g_PrivateCommunicationThreadStarted.store(true);
-        }
-
-        // First stage: client send 9999:T:<private-named-pipe>
-        // This issues a transfer to the new private pipe
-        if (!WriteFile(g_hCommunicationPipe, command.build().serialized, COMMUNICATION_BUFFER, NULL, NULL)) {
-            error("Could not write to file. Broken communication protocol\n");
-        }
-        debug("Sent transfer command\n");
-    }
 }
