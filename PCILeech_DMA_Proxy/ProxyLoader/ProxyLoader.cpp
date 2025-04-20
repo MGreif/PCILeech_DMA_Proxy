@@ -15,13 +15,17 @@
 
 std::atomic<bool> gbProcessSuspended(true);
 HANDLE g_hCommunicationPipe = INVALID_HANDLE_VALUE;
+extern ProcessPool g_ProcessPool;
+
+Process* g_pFirstProcess;
 
 struct ProcessInfo {
-    DWORD pid;
+    RemoteProcessInfo ids;
     HANDLE hProcess;
     HANDLE hThread;
     HANDLE hReadPipe;
 };
+
 
 ProcessInfo CreateSuspendedProcess(const std::string& exe, const std::string& args) {
     SECURITY_ATTRIBUTES sa = { sizeof(sa), 0 };
@@ -31,18 +35,18 @@ ProcessInfo CreateSuspendedProcess(const std::string& exe, const std::string& ar
     HANDLE hReadPipe, hWritePipe;
     if (!CreatePipe(&hReadPipe, &hWritePipe, &sa, 0)) {
         error("Failed to create pipe\n");
-        return { 0, NULL, NULL, NULL};
+        return { 0, 0, 0, NULL, NULL, NULL };
     }
 
     // Ensure the write handle is inheritable
     if (!SetHandleInformation(hWritePipe, HANDLE_FLAG_INHERIT, TRUE)) {
         error("Could not setHandleInformation for writePipe\n");
-        return { 0, NULL, NULL, NULL };
+        return { 0, 0, 0, NULL, NULL, NULL };
     }
 
     if (!SetHandleInformation(hReadPipe, HANDLE_FLAG_INHERIT, FALSE)) {
         error("Could not setHandleInformation for readPipe\n");
-        return { 0, NULL, NULL, NULL };
+        return { 0, 0, 0, NULL, NULL, NULL };
     }
 
     STARTUPINFOA si = { sizeof(si), 0 };
@@ -60,13 +64,13 @@ ProcessInfo CreateSuspendedProcess(const std::string& exe, const std::string& ar
     if (CreateProcessA(NULL, cmd, NULL, NULL, TRUE, CREATE_SUSPENDED, NULL, NULL, &si, &pi)) {
         printf("[%u] Process started!\n", pi.dwProcessId);
         CloseHandle(hWritePipe);
-        return { pi.dwProcessId, pi.hProcess, pi.hThread, hReadPipe };
+        return { pi.dwProcessId, pi.dwThreadId, 0, pi.hProcess, pi.hThread, hReadPipe };
     }
     else {
         std::cerr << "Failed to start process. Error: " << GetLastError() << std::endl;
         CloseHandle(hReadPipe);
         CloseHandle(hWritePipe);
-        return { 0, NULL, NULL, NULL };
+        return { 0, 0, 0, NULL, NULL, NULL };
     }
 }
 
@@ -94,7 +98,7 @@ void displayProcessOutput(ProcessInfo proc) {
                     while (newLinePos != 0) {
                         if (newLinePos == 0) break;
                         *newLinePos = '\0';
-                        std::cout << proc.pid << " (stdout) >> " << tempStart << std::endl;
+                        std::cout << proc.ids.pid << " (stdout) >> " << tempStart << std::endl;
                         tempStart = newLinePos + 1;
                         newLinePos = strchr(tempStart, '\n');
 
@@ -168,6 +172,16 @@ int main(int argc, char** argv)
 
     proc = CreateSuspendedProcess(exe, args);
 
+    // Creating first process
+    // Its added to the process pool to be later corelated to a private communication channel
+    // Once the process connects to the public channel, gets transfered to a private and then sends a connected command with its
+    // process id (the one of the created process) and main thread id (not the one the injected DLL is executed in)
+    Process newProcess = Process();
+    newProcess.setPid(proc.ids.pid);
+    newProcess.setTid(proc.ids.tid);
+    g_ProcessPool.add(&newProcess);
+    g_pFirstProcess = &newProcess;
+
     g_hCommunicationPipe = CreateNamedPipeA(PIPE_NAME, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 5, 1024, 1024, NULL, NULL);
     if (g_hCommunicationPipe == INVALID_HANDLE_VALUE) {
         error("Could not create communication pipe\n");
@@ -180,7 +194,7 @@ int main(int argc, char** argv)
     std::thread communication(startCommunicationThread);
     std::thread outputDisplay(displayProcessOutput, proc);
 
-    if (proc.pid == 0) {
+    if (proc.ids.pid == 0) {
         error("Could not start process");
         cleanup();
         exit(1);

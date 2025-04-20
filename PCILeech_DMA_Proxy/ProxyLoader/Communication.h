@@ -6,6 +6,8 @@
 #define COMMAND_TRANSFER_LITERAL "T"
 #define COMMAND_FINISH_SETUP_LITERAL "F"
 #define COMMAND_NO_HOOKING_LITERAL "N"
+#define COMMAND_READY_FOR_RESUME_LITERAL "R"
+#define COMMAND_NEW_PROCESS_LITERAL "P"
 #define COMMAND_DELIMITER ':'
 #define COMMAND_END ';'
 
@@ -18,9 +20,11 @@
 
 enum ECommandType {
 	TRANSFER, //Server->Client 9999:T:<named-pipe-name>;
-	CONNECTED, //Client->Server <pid>:C:;
+	CONNECTED, //Client->Server <pid>:C:<proxy-thread-id>;
 	FINISH_SETUP, // Server->Client 9999:F:;
 	NO_HOOKING, // Server->Client 9999:N:<specifier>; // Specifier is one of threads,console,modules,process,mem
+	READY_FOR_RESUME, // Client->Server <oid>:R:;
+	NEW_PROCESS, // Client->Server <owner-pid>:P:<newprocess-pid>:<newprocess-main-tid>
 	INVALID,
 };
 
@@ -58,13 +62,16 @@ public:
 
 class ConnectedCommand : public Command {
 public:
-	ConnectedCommand(unsigned int _pid) : Command(_pid) {
+	unsigned int tid = 0;
+
+	ConnectedCommand(unsigned int _pid, unsigned int _tid) : Command(_pid) {
 		type = ECommandType::CONNECTED;
 		pid = _pid;
+		tid = _tid;
 	}
 	BuiltCommand build() {
 		BuiltCommand builtCommand;
-		sprintf_s(builtCommand.serialized, "%u:C:;", pid);
+		sprintf_s(builtCommand.serialized, "%u:C:%u;", pid, tid);
 		return builtCommand;
 	}
 };
@@ -98,6 +105,33 @@ public:
 	BuiltCommand build() {
 		BuiltCommand builtCommand;
 		sprintf_s(builtCommand.serialized, "%u:F:;", pid);
+		return builtCommand;
+	}
+};
+
+class ReadyForResumeCommand : public Command {
+public:
+	ReadyForResumeCommand() : Command(GetCurrentProcessId()) {
+		type = ECommandType::READY_FOR_RESUME;
+	}
+	BuiltCommand build() {
+		BuiltCommand builtCommand;
+		sprintf_s(builtCommand.serialized, "%u:R:;", pid);
+		return builtCommand;
+	}
+};
+
+class NewProcessCommand : public Command {
+public:
+	unsigned int newProcessPid, newProcessTid;
+	NewProcessCommand(unsigned int _newProcessPid, unsigned int _newProcessTid) : Command(GetCurrentProcessId()) {
+		type = ECommandType::NEW_PROCESS;
+		newProcessPid = _newProcessPid;
+		newProcessTid = _newProcessTid;
+	}
+	BuiltCommand build() {
+		BuiltCommand builtCommand;
+		sprintf_s(builtCommand.serialized, "%u:P:%u:%u;", pid, newProcessPid, newProcessTid);
 		return builtCommand;
 	}
 };

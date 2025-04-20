@@ -7,16 +7,38 @@
 int main(int argc, char** argv)
 {
 	if (argc < 3) {
-		printf("Usage: reader.exe <pid> <virtual-address>\n");
+		printf("Usage: reader.exe <pid> <virtual-address> <iterations-for-testing>\n");
 		return 1;
 	}
-
-	printf("Starting SampleMemoryReader PID: %u TID: %u\n", GetCurrentProcessId(), GetCurrentThreadId());
-
 	int pid = atoi(argv[1]);
+	int iterations = atoi(argv[3]);
+
+	printf("Starting SampleMemoryReader PID: %u TID: %u Iterations: %d\n", GetCurrentProcessId(), GetCurrentThreadId(), iterations);
+
 	LPVOID vaddr = (LPVOID)strtoll(argv[2], &argv[2] + strlen(argv[2]), 16);
 
 	printf("Reading memory of pid:%u at 0x%p\n", pid, vaddr);
+
+	// This block is used to simulated child processes
+	if (iterations > 0) {
+		char newIterations[5] = { 0 };
+		sprintf_s(newIterations, "%d", iterations - 1);
+
+		char CurrentDir[1024] = { 0 };
+		GetCurrentDirectoryA(sizeof(CurrentDir), CurrentDir);
+		char command[1024] = { 0 };
+		sprintf_s(command, "%s\\SampleMemoryReader.exe %s %s %s", CurrentDir, argv[1], argv[2], newIterations);
+		printf("Starting new iteration: %s\n", command);
+		STARTUPINFOA sa;
+		PROCESS_INFORMATION pa;
+		sa.cb = sizeof(sa);
+		if (!CreateProcessA(NULL, command, NULL, NULL, false, NULL, NULL, NULL, &sa, &pa)) {
+			printf("Could not create process. Error %u\n", GetLastError());
+		}
+		else {
+			printf("Started new process %u\n", pa.dwProcessId);
+		}
+	}
 
 	HANDLE hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_QUERY_INFORMATION, 0, pid);
 
@@ -103,7 +125,7 @@ int main(int argc, char** argv)
 
 	printf("Setting memory to 1337\n");
 
-	DWORD newVal = 1337;
+	DWORD newVal = 1337 + iterations;
 	SIZE_T wrote = 0;
 	if (!WriteProcessMemory(hProcess, vaddr, &newVal, sizeof(DWORD), &wrote)) {
 		printf("[!] Could not write to %p\n", vaddr);
@@ -122,5 +144,10 @@ int main(int argc, char** argv)
 	printf("New value of %p is 0x%x\n", vaddr, out);
 	fflush(stdout);
 	CloseHandle(hProcess);
+
+
+
+
+
 	return 0;
 }

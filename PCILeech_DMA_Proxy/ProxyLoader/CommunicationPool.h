@@ -6,20 +6,27 @@
 inline int g_CommunicationPartnerCounter;
 void startCommunicationThread();
 
+struct RemoteProcessInfo {
+	DWORD pid;
+	DWORD tid; // Main thread id
+	DWORD proxyTid;
+};
 
-class CommunicationPartner {
-	unsigned int pid = 0;
+class Process;
+
+class PrivateCommunicationChannel {
 	char privatePipeName[32] = { 0 };
 	HANDLE privatePipe = INVALID_HANDLE_VALUE;
 	bool pipeConnected = false;
 public:
-	CommunicationPartner() {
+	Process* pCarryingProcess = nullptr;
+	PrivateCommunicationChannel() {
 		sprintf_s(privatePipeName, "\\\\.\\pipe\\DMA_PROXY%d", g_CommunicationPartnerCounter++);
 		privatePipe = CreateNamedPipeA(privatePipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 5, 1024, 1024, 10000, NULL);
 		if (privatePipe == INVALID_HANDLE_VALUE) error("Could not create private pipe\n");
 		info("New communicationPartner with pipe name: %s and handle %p\n", privatePipeName, privatePipe);
 	}
-	~CommunicationPartner() {
+	~PrivateCommunicationChannel() {
 		CloseHandle(privatePipe);
 	}
 	HANDLE getPipe() {
@@ -35,45 +42,92 @@ public:
 	void setPipeConnected(bool val) {
 		this->pipeConnected = val;
 	}
+};
+
+class Process {
+private:
+	RemoteProcessInfo ids = { 0 };
+
+public:
+	PrivateCommunicationChannel* communicationPartner;
+
+	Process() {
+		
+	}
+
+	bool addCommunicationPartner (PrivateCommunicationChannel* partner) {
+		if (communicationPartner == nullptr) {
+			communicationPartner = partner;
+			return true;
+		}
+		else {
+			// Already has a cmmunicationChannel. It shouldnt be set twice
+			return false;
+		}
+	}
 
 	void setPid(unsigned int pid) {
-		this->pid = pid;
+		this->ids.pid = pid;
 	}
 
 	unsigned int getPid() {
-		return this->pid;
+		return this->ids.pid;
 	}
 
+	void setTid(unsigned int tid) {
+		this->ids.tid = tid;
+	}
+
+	unsigned int getTid() {
+		return this->ids.tid;
+	}
+
+	void setProxyTid(unsigned int tid) {
+		this->ids.proxyTid = tid;
+	}
+
+	unsigned int getProxyTid() {
+		return this->ids.proxyTid;
+	}
 };
 
-class CommunicationPool {
+class ProcessPool {
 private:
-	std::vector<CommunicationPartner*> communicationList = std::vector<CommunicationPartner*>();
+	std::vector<Process*> processList = std::vector<Process*>();
 	HANDLE hMutex = INVALID_HANDLE_VALUE;
 
 public:
-	CommunicationPool() {
+	ProcessPool() {
 		hMutex = CreateMutexA(NULL, FALSE, NULL);
 	}
-	void add(CommunicationPartner* partner) {
+	void add(Process* process) {
 		DWORD locked = WaitForSingleObject(hMutex, 1000);
 		switch (locked) {
 		case WAIT_OBJECT_0:
-			communicationList.push_back(partner);
+			debug("Added process pid %d to pool\n", process->getPid());
+			processList.push_back(process);
 		}
 		ReleaseMutex(hMutex);
 	}
-	CommunicationPartner* get(int i) {
+
+	Process* getByPid(unsigned int pid) {
+		for (Process* p : processList) {
+			if (p->getPid() == pid) return p;
+		}
+		return nullptr;
+	}
+
+	Process* get(int i) {
 		DWORD locked = WaitForSingleObject(hMutex, 1000);
-		CommunicationPartner* partner = nullptr;
+		Process* process = nullptr;
 		switch (locked) {
 		case WAIT_OBJECT_0:
-			partner = communicationList.at(i);
+			process = processList.at(i);
 		}
 		ReleaseMutex(hMutex);
-		return partner;
+		return process;
 	}
 	size_t count() {
-		return communicationList.size();
+		return processList.size();
 	}
 };

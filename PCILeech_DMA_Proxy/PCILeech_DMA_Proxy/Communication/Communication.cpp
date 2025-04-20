@@ -16,11 +16,14 @@ ECommandType parseType(char* buffer) {
     else if (strncmp(buffer, COMMAND_NO_HOOKING_LITERAL, strlen(COMMAND_NO_HOOKING_LITERAL)) == 0) {
         return ECommandType::NO_HOOKING;
     }
+    else if (strncmp(buffer, COMMAND_READY_FOR_RESUME_LITERAL, strlen(COMMAND_READY_FOR_RESUME_LITERAL)) == 0) {
+        return ECommandType::READY_FOR_RESUME;
+    }
     return ECommandType::INVALID;
 }
 
-bool handleConnected(CommandPayload* payload, OUT_REPLACED Command** command) {
-    *command = new ConnectedCommand(*payload->uValue);
+bool handleConnected(CommandPayload* payload, OUT_REPLACED Command** command, unsigned int pid) {
+    *command = new ConnectedCommand(pid, *payload->uValue);
     return true;
 }
 
@@ -37,6 +40,11 @@ bool handleFinishSetup(CommandPayload* payload, OUT_REPLACED Command** command) 
 bool handleNoHooking(CommandPayload* payload, OUT_REPLACED Command** command) {
     *command = new NoHookingCommand();
     ((NoHookingCommand*)command)->setSpecifier(*(char**)payload->content);
+    return true;
+}
+
+bool handleReadyForResume(CommandPayload* payload, OUT_REPLACED Command** command) {
+    *command = new ReadyForResumeCommand();
     return true;
 }
 
@@ -65,7 +73,7 @@ bool parseCommand(char* buffer, OUT_REPLACED Command** command) {
     switch (type) {
     case CONNECTED:
     {
-        if (!handleConnected((CommandPayload*)&thirdChunk, command)) return false; // Could not handle command
+        if (!handleConnected((CommandPayload*)&thirdChunk, command, pid)) return false;
         break;
     }
     case TRANSFER: {
@@ -78,6 +86,10 @@ bool parseCommand(char* buffer, OUT_REPLACED Command** command) {
     }
     case NO_HOOKING: {
         if (!handleNoHooking((CommandPayload*)&thirdChunk, command)) return false;
+        break;
+    }
+    case READY_FOR_RESUME: {
+        if (!handleReadyForResume((CommandPayload*)&thirdChunk, command)) return false;
         break;
     }
     }

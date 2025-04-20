@@ -149,7 +149,7 @@ DWORD WINAPI start_thread() {
         delete transferCommand;
 
         // Sending a ConnectedCommand with the current processId
-        ConnectedCommand connectedCommand = ConnectedCommand(GetCurrentProcessId());
+        ConnectedCommand connectedCommand = ConnectedCommand(GetCurrentProcessId(), GetCurrentThreadId());
         BuiltCommand built = connectedCommand.build();
 
         if (!WriteFile(hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
