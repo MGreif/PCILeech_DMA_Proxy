@@ -309,18 +309,16 @@ HOOKING:
             LOG("[!] Could not initialize DMA. Terminating Process\n");
             exit(1);
         };
-        LOG("%d\n", mem.vHandle);
-        PassHandleCommand passHandleCommand = PassHandleCommand(mem.vHandle);
-        BuiltCommand built = passHandleCommand.build();
-        if (!WriteFile(g_hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
-        LOG("Passed vHandle to ProxyLoader\n");
+        //PassHandleCommand passHandleCommand = PassHandleCommand(mem.vHandle);
+        //BuiltCommand built = passHandleCommand.build();
+        //if (!WriteFile(g_hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
+        //LOG("Passed vHandle to ProxyLoader\n");
     }
 
 
     if (MH_EnableHook(MH_ALL_HOOKS) != MH_OK) {
         LOG("[!] Could not enable hooks");
         VMMDLL_Close(mem.vHandle);
-        mem.vHandle;
         exit(1);
     }
 
