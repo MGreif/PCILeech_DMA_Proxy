@@ -17,7 +17,7 @@ HANDLE g_VMMHandle = INVALID_HANDLE_VALUE;
 
 void startPrivateCommunicationThread() {
     int counter = 0;
-    // Iterate through all communicationPartners for non-blocking better performance
+    // Iterate through all communicationPartners for better performance
     while (g_PrivateCommunicationChannels.size() > 0) {
 
         fflush(stdout);
@@ -92,8 +92,8 @@ void startPrivateCommunicationThread() {
                         g_bDMAInitialized.store(true);
                     }
                     else {
-                        char* noMemoryHookCommand = NoHookingCommand().setSpecifier("dma")->build().serialized;
-                        if (!WriteFile(channel->getPipe(), noMemoryHookCommand, strlen(noMemoryHookCommand), NULL, NULL)) break;
+                        //char* noMemoryHookCommand = NoHookingCommand().setSpecifier("dma")->build().serialized;
+                        //if (!WriteFile(channel->getPipe(), noMemoryHookCommand, strlen(noMemoryHookCommand), NULL, NULL)) break;
                         if (g_VMMHandle != INVALID_HANDLE_VALUE) {
                             //char* sendHandleCommand = SendHandleCommand(g_VMMHandle).build().serialized;
                             //if (!WriteFile(channel->getPipe(), sendHandleCommand, strlen(sendHandleCommand), NULL, NULL)) break;
