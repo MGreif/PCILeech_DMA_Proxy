@@ -7,6 +7,8 @@
 
 extern inline int g_CommunicationPartnerCounter = 0;
 extern char* g_dllPath;
+extern Options g_Options;
+
 ProcessPool g_ProcessPool = ProcessPool();
 std::vector<PrivateCommunicationChannel*> g_PrivateCommunicationChannels = std::vector<PrivateCommunicationChannel*>();
 std::atomic<bool> g_PrivateCommunicationThreadStarted(false);
@@ -143,6 +145,9 @@ void startPrivateCommunicationThread() {
                 }
                 case READY_FOR_RESUME:
                 {
+                    if (g_Options.manualResume) {
+                        MessageBoxA(NULL, "You can now attach a debugger", "Resume process", MB_OK);
+                    }
                     DWORD resumed = ResumeThread(channel->pCarryingProcess->hMainThread);
                     if (resumed == -1) {
                         error("Failed resuming pid %u tid %u\n", channel->pCarryingProcess->getPid(), channel->pCarryingProcess->getTid());

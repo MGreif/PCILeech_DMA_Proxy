@@ -6,6 +6,7 @@
 #include <atomic>
 #include "Communication.h"
 #include "CommunicationPool.h"
+#include "ArgParser.h"
 #define OUTPUT_BUFFER_SIZE 1024
 #define WAIT_TIME_SECONDS 2
 #define NO_DATA_TIMEOUT_SECONDS 10
@@ -14,6 +15,7 @@
 #define PIPE_NAME "\\\\.\\pipe\\DMA_PROXY"
 
 HANDLE g_hCommunicationPipe = INVALID_HANDLE_VALUE;
+Options g_Options = { 0 };
 extern ProcessPool g_ProcessPool;
 char* g_dllPath = nullptr;
 extern std::vector<PrivateCommunicationChannel*> g_PrivateCommunicationChannels;
@@ -155,18 +157,47 @@ void cleanup() {
     VMMDLL_CloseAll();
 }
 
+
+
 int main(int argc, char** argv)
 {
-    if (argc < 3) {
+    ArgParser parser = ArgParser(argc, argv, "Starts a process and automatically injects the DMA_Proxy DLL");
+
+    ArgOption manualResumeArg = ArgOption(ARG_BOOL, "pmr", "proxy-manual-resume", "Lets the user manually resume the target process (spawning a MessageBox)", false);
+    manualResumeArg.setOut(&g_Options.manualResume);
+
+    bool printHelp = false;
+    ArgOption printHelpArg = ArgOption(ARG_BOOL, "h", "help", "Print help", false);
+    printHelpArg.setOut(&printHelp);
+
+    parser.addArg(&manualResumeArg);
+    parser.addArg(&printHelpArg);
+
+    try {
+        parser.parseAll();
+    }
+    catch (std::exception e) {
+        printf("Could not parse arguments: %s\n", e.what());
+        return 1;
+    }
+
+    if (printHelp) {
+        parser.printUsage();
+        exit(0);
+    }
+
+    auto positionalArgs = parser.getNonOptionArgs();
+
+    if (positionalArgs.size() < 3) {
         std::cout << "Usage: ProxyLoader.exe <abs-path-to-proxy-dll> <abs-path-program> [args...]" << std::endl;
         return 1;
     }
 
-    g_dllPath = argv[1];
-    std::string exe = argv[2];
+    g_dllPath = positionalArgs[1];
+    std::string exe = positionalArgs[2];
     std::string args;
-    for (int i = 3; i < argc; ++i) {
-        args += std::string(argv[i]) + " ";
+    for (int i = 3; i < positionalArgs.size(); ++i) {
+        args += std::string(positionalArgs[i]) + " ";
     }
 
     if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {

@@ -139,6 +139,7 @@
     <ClCompile Include="ThreadHijack_LLA.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ArgParser.h" />
     <ClInclude Include="Communication.h" />
     <ClInclude Include="CommunicationPool.h" />
     <ClInclude Include="CreateRemoteThreadEx_LLA.h" />

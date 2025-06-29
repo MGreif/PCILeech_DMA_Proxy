@@ -17,8 +17,6 @@
 #include <vector>
 #include <Windows.h>
 
-
-
 enum ECommandType {
 	CONNECTED, //Client->Server <pid>:C:<proxy-thread-id>;
 	FINISH_SETUP, // Server->Client 9999:F:;

@@ -4,6 +4,11 @@
 #include "log.hpp"
 #include <vector>
 
+struct Options {
+	bool manualResume;
+};
+
+
 struct RemoteProcessInfo {
 	DWORD pid;
 	DWORD tid; // Main thread id

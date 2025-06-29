@@ -77,6 +77,8 @@ Currently it uses `CreateRemoteThreadEx` to remote execute and `LoadLibraryA` to
 
 - `ProxyLoader.exe <aboslute-path-to-proxy-dll> <absolute-path-program> [...args]`
 
+- `ProxyLoader.exe -pmr <aboslute-path-to-proxy-dll> <absolute-path-program> [...args]` # The `-pmr` or `--proxy-manual-resume` option creats a message box and resumes the program once the message box is clicked on. This allows for easy attachment of a debugger on the suspended target process.
+
 
 ### SampleMemoryReader
 
