@@ -10,21 +10,17 @@ extern char* g_dllPath;
 extern Options g_Options;
 
 ProcessPool g_ProcessPool = ProcessPool();
-std::vector<PrivateCommunicationChannel*> g_PrivateCommunicationChannels = std::vector<PrivateCommunicationChannel*>();
-std::atomic<bool> g_PrivateCommunicationThreadStarted(false);
+std::vector<ProcessCommunicationChannel*> g_ProcessCommunicationChannels = std::vector<ProcessCommunicationChannel*>();
 std::atomic<bool> g_bDMAInitialized(false);
-std::thread hPrivateCommunicationThread;
-
-HANDLE g_VMMHandle = INVALID_HANDLE_VALUE;
 
 void startPrivateCommunicationThread() {
     int counter = 0;
     // Iterate through all communicationPartners for better performance
-    while (g_PrivateCommunicationChannels.size() > 0) {
+    while (g_ProcessCommunicationChannels.size() > 0) {
 
         fflush(stdout);
-        if (counter >= g_PrivateCommunicationChannels.size()) counter = 0;
-        PrivateCommunicationChannel* channel = g_PrivateCommunicationChannels.at(counter++);
+        if (counter >= g_ProcessCommunicationChannels.size()) counter = 0;
+        ProcessCommunicationChannel* channel = g_ProcessCommunicationChannels.at(counter++);
         if (channel == nullptr) continue;
 
         if (!channel->isPipeConnected()) {
@@ -48,8 +44,12 @@ void startPrivateCommunicationThread() {
             warning("Could not peek private named pipe of process %u. Pipe probably terminated\n", channel->pCarryingProcess->getPid());
             channel->setPipeConnected(false);
             
-            g_PrivateCommunicationChannels.erase(std::remove(g_PrivateCommunicationChannels.begin(), g_PrivateCommunicationChannels.end(), channel), g_PrivateCommunicationChannels.end());
+            g_ProcessCommunicationChannels.erase(std::remove(g_ProcessCommunicationChannels.begin(), g_ProcessCommunicationChannels.end(), channel), g_ProcessCommunicationChannels.end());
             warning("Removed channel from channel pool\n");
+
+            warning("Terminating process as communication pipe closed: %p\n", channel->pCarryingProcess->hProcess);
+            TerminateProcess(channel->pCarryingProcess->hProcess, PROCESS_TERMINATE);
+
             continue;
         }
 
@@ -93,16 +93,6 @@ void startPrivateCommunicationThread() {
                     if (!g_bDMAInitialized.load()) {
                         g_bDMAInitialized.store(true);
                     }
-                    else {
-                        //char* noMemoryHookCommand = NoHookingCommand().setSpecifier("dma")->build().serialized;
-                        //if (!WriteFile(channel->getPipe(), noMemoryHookCommand, strlen(noMemoryHookCommand), NULL, NULL)) break;
-                        if (g_VMMHandle != INVALID_HANDLE_VALUE) {
-                            //char* sendHandleCommand = SendHandleCommand(g_VMMHandle).build().serialized;
-                            //if (!WriteFile(channel->getPipe(), sendHandleCommand, strlen(sendHandleCommand), NULL, NULL)) break;
-                            info("Send VMMHandle to process pid %u\n", channel->pCarryingProcess->getPid());
-                        }
-
-                    }
 
                     // Sending FinishSetup command so the DLL continues execution and does not wait for more commands
                     if (!WriteFile(channel->getPipe(), FinishSetupCommand().build().serialized, strlen(FinishSetupCommand().build().serialized), NULL, NULL)) break;
@@ -130,12 +120,15 @@ void startPrivateCommunicationThread() {
                     newProcess->hProcess = hNewProcess;
                     newProcess->hMainThread = hNewProcessMainThread;
                     
-                    auto channel = new PrivateCommunicationChannel();
+                    // Creating pipe for IPC
+                    auto channel = new ProcessCommunicationChannel();
                     newProcess->addCommunicationPartner(channel);
                     channel->pCarryingProcess = newProcess;
-                    g_PrivateCommunicationChannels.push_back(channel);
+                    g_ProcessCommunicationChannels.push_back(channel);
+
+                    HANDLE hInjectionThread = INVALID_HANDLE_VALUE;
                     // Injecting DLL
-                    if (!CreateRemoteThreadEx_LLAInjection(hNewProcess, g_dllPath)) {
+                    if (!CreateRemoteThreadEx_LLAInjection(hNewProcess, g_dllPath, &hInjectionThread)) {
                         error("Could not inject thread\n");
                         exit(1);
                     }
@@ -155,17 +148,7 @@ void startPrivateCommunicationThread() {
                     }
                     else {
                         info("Resumed %d threads in process %u thread %u\n", resumed, channel->pCarryingProcess->getPid(), channel->pCarryingProcess->getTid());
-
                     }
-                    break;
-                }
-                case PASS_HANDLE:{
-                    PassHandleCommand* passHandleCommand = (PassHandleCommand*)cmd;
-                    info("Received VMM handle %u\n", passHandleCommand->handle);
-                    if (g_VMMHandle != INVALID_HANDLE_VALUE) {
-                        warning("Handle already set. Overwriting it!\n");
-                    }
-                    g_VMMHandle = passHandleCommand->handle;
                     break;
                 }
                 case INVALID:

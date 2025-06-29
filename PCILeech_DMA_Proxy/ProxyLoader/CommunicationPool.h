@@ -8,7 +8,6 @@ struct Options {
 	bool manualResume;
 };
 
-
 struct RemoteProcessInfo {
 	DWORD pid;
 	DWORD tid; // Main thread id
@@ -17,21 +16,19 @@ struct RemoteProcessInfo {
 
 class Process;
 
-class PrivateCommunicationChannel {
+// This takes care of creating a communication channel for a process
+class ProcessCommunicationChannel {
 	char privatePipeName[32] = { 0 };
 	HANDLE privatePipe = INVALID_HANDLE_VALUE;
 	bool pipeConnected = false;
 public:
 	Process* pCarryingProcess = nullptr;
-	int pipeNotConnectedRetryCounter = 0;
-	const static int pipeNotConnectedRetryTimeout = 1000; // This should be matched with the loop sleep interval to match X seconds
-	PrivateCommunicationChannel() {
-		sprintf_s(privatePipeName, "\\\\.\\pipe\\DMA_PROXY");
-		privatePipe = CreateNamedPipeA(privatePipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, 1024, 1024, 10000, NULL);
+	ProcessCommunicationChannel() {
+		privatePipe = CreateNamedPipeA("\\\\.\\pipe\\DMA_PROXY", PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, 1024, 1024, 10000, NULL);
 		if (privatePipe == INVALID_HANDLE_VALUE) error("Could not create private pipe\n");
 		info("New communicationPartner with pipe name: %s and handle %p\n", privatePipeName, privatePipe);
 	}
-	~PrivateCommunicationChannel() {
+	~ProcessCommunicationChannel() {
 		CloseHandle(privatePipe);
 	}
 	HANDLE getPipe() {
@@ -54,20 +51,20 @@ private:
 	RemoteProcessInfo ids = { 0 };
 
 public:
-	PrivateCommunicationChannel* communicationPartner;
+	ProcessCommunicationChannel* communicationPartner;
 	HANDLE hProcess = INVALID_HANDLE_VALUE;
 	HANDLE hMainThread = INVALID_HANDLE_VALUE;
 	Process() {
 		
 	}
 
-	bool addCommunicationPartner (PrivateCommunicationChannel* partner) {
+	bool addCommunicationPartner (ProcessCommunicationChannel* partner) {
 		if (communicationPartner == nullptr) {
 			communicationPartner = partner;
 			return true;
 		}
 		else {
-			// Already has a cmmunicationChannel. It shouldnt be set twice
+			// Already has a communication channel. It shouldnt be set twice
 			return false;
 		}
 	}

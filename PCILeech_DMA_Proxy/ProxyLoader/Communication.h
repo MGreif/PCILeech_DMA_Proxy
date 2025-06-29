@@ -7,8 +7,6 @@
 #define COMMAND_NO_HOOKING_LITERAL "N"
 #define COMMAND_READY_FOR_RESUME_LITERAL "R"
 #define COMMAND_NEW_PROCESS_LITERAL "P"
-#define COMMAND_PASS_HANDLE_LITERAL "PH"
-#define COMMAND_SEND_HANDLE_LITERAL "SH"
 #define COMMAND_DELIMITER ':'
 #define COMMAND_END ';'
 
@@ -23,8 +21,6 @@ enum ECommandType {
 	NO_HOOKING, // Server->Client 9999:N:<specifier>; // Specifier is one of threads,console,modules,process,mem,dma
 	READY_FOR_RESUME, // Client->Server <oid>:R:;
 	NEW_PROCESS, // Client->Server <owner-pid>:P:<newprocess-pid>:<newprocess-main-tid>
-	PASS_HANDLE, // Client->Server <owner-pid>:PH:<dma-handle>
-	SEND_HANDLE, // Server->Client 9999:SH:<dma-handle>
 	INVALID,
 };
 
@@ -73,36 +69,6 @@ public:
 	BuiltCommand build() {
 		BuiltCommand builtCommand;
 		sprintf_s(builtCommand.serialized, "%u:C:%u;", pid, tid);
-		return builtCommand;
-	}
-};
-
-class PassHandleCommand : public Command {
-public:
-	HANDLE handle = 0;
-
-	PassHandleCommand(HANDLE _handle) : Command(GetCurrentProcessId()) {
-		type = ECommandType::PASS_HANDLE;
-		handle = _handle;
-	}
-	BuiltCommand build() {
-		BuiltCommand builtCommand;
-		sprintf_s(builtCommand.serialized, "%u:PH:%u;", pid, handle);
-		return builtCommand;
-	}
-};
-
-class SendHandleCommand : public Command {
-public:
-	HANDLE handle = 0;
-
-	SendHandleCommand(HANDLE _handle) : Command(9999) {
-		type = ECommandType::SEND_HANDLE;
-		handle = _handle;
-	}
-	BuiltCommand build() {
-		BuiltCommand builtCommand;
-		sprintf_s(builtCommand.serialized, "%u:SH:%u;", pid, handle);
 		return builtCommand;
 	}
 };

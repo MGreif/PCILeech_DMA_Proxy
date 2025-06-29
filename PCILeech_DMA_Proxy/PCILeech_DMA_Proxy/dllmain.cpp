@@ -12,7 +12,7 @@ DWORD WINAPI start_thread();
 extern Memory mem;
 #define LOG(fmt, ...) {printf("[Proxy] ");std::printf(fmt, ##__VA_ARGS__); fflush(stdout);};
 #define LOGW(fmt, ...) {wprintf(L"[Proxy] ");std::wprintf(fmt, ##__VA_ARGS__); fflush(stdout);};
-HANDLE g_hPrivateCommunicationPipe = INVALID_HANDLE_VALUE;
+HANDLE g_hProcessCommunicationPipe = INVALID_HANDLE_VALUE;
 
 
 
@@ -56,7 +56,7 @@ void handleNoHookingCommand(NoHookingCommand* cmd) {
 }
 
 bool g_bFinishedSetup = false;
-
+HANDLE hThread = INVALID_HANDLE_VALUE;
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
@@ -66,11 +66,16 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH: {
         //DisableThreadLibraryCalls(hModule); // Prevent thread attach/detach calls for efficiency
-        HANDLE hThread = CreateThread(NULL, 4096, (LPTHREAD_START_ROUTINE)start_thread, NULL, 0, NULL);
+        hThread = CreateThread(NULL, 4096, (LPTHREAD_START_ROUTINE)start_thread, NULL, 0, NULL);
         LOG("Started thread %u\n", GetThreadId(hThread));
         return TRUE;
     }
     case DLL_PROCESS_DETACH: {
+        CloseHandle(g_hProcessCommunicationPipe);
+        CloseHandle(hThread);
+        if (g_Configuration.initDMA) {
+            VMMDLL_Close(mem.vHandle);
+        }
         break;
     }
     }
@@ -132,21 +137,21 @@ DWORD WINAPI start_thread() {
     fflush(stdout);
 
     // Connecting to ProxyLoader via named pipe
-    g_hPrivateCommunicationPipe = CreateFileA("\\\\.\\pipe\\DMA_PROXY", GENERIC_ALL, NULL, NULL, OPEN_EXISTING, NULL, NULL);
+    g_hProcessCommunicationPipe = CreateFileA("\\\\.\\pipe\\DMA_PROXY", GENERIC_ALL, NULL, NULL, OPEN_EXISTING, NULL, NULL);
     char bufferOut[COMMUNICATION_BUFFER] = { 0 };
-    if (g_hPrivateCommunicationPipe != INVALID_HANDLE_VALUE) {
+    if (g_hProcessCommunicationPipe != INVALID_HANDLE_VALUE) {
 
         // Sending a ConnectedCommand with the current processId
         ConnectedCommand connectedCommand = ConnectedCommand(GetCurrentProcessId(), GetCurrentThreadId());
         BuiltCommand built = connectedCommand.build();
 
-        if (!WriteFile(g_hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
+        if (!WriteFile(g_hProcessCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
 
         // Currently there is no acknowledgement whatsoever, we just hope windows does a good job :shrug:
 
         LOG("Now accepting configuration commands\n");
         ZeroMemory(bufferOut, COMMUNICATION_BUFFER);
-        while (!g_bFinishedSetup && ReadFile(g_hPrivateCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL) ) {
+        while (!g_bFinishedSetup && ReadFile(g_hProcessCommunicationPipe, bufferOut, sizeof(bufferOut), NULL, NULL) ) {
             char* commandEnd = strchr(bufferOut, COMMAND_END);
             char* commandStart = bufferOut;
             LOG("Received command buffer: %s\n", bufferOut);
@@ -168,11 +173,6 @@ DWORD WINAPI start_thread() {
                 case NO_HOOKING: {
                     handleNoHookingCommand((NoHookingCommand*)&cmd);
                     break;
-                }
-                case SEND_HANDLE: {
-                    SendHandleCommand* sendHandleCommand = (SendHandleCommand*)cmd;
-                    mem.vHandle = (VMM_HANDLE)sendHandleCommand->handle;
-                    LOG("Received handle from ProxyLoader\n");
                 }
                 }
             END_COMMAND_PROCESS:
@@ -323,10 +323,6 @@ HOOKING:
             LOG("[!] Could not initialize DMA. Terminating Process\n");
             exit(1);
         };
-        //PassHandleCommand passHandleCommand = PassHandleCommand(mem.vHandle);
-        //BuiltCommand built = passHandleCommand.build();
-        //if (!WriteFile(g_hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
-        //LOG("Passed vHandle to ProxyLoader\n");
     }
 
 
@@ -340,7 +336,7 @@ HOOKING:
     ReadyForResumeCommand resumeCommand = ReadyForResumeCommand();
     BuiltCommand built = resumeCommand.build();
 
-    if (!WriteFile(g_hPrivateCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
+    if (!WriteFile(g_hProcessCommunicationPipe, built.serialized, strlen(built.serialized), NULL, NULL)) LOG("Could not write to private communication pipe\n");
 
     return 0;
 }

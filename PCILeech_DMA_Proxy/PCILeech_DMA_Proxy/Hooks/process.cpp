@@ -8,7 +8,7 @@
 #define LOGW(fmt, ...) {wprintf(L"[Proxy] ");std::wprintf(fmt, ##__VA_ARGS__); fflush(stdout);};
 
 extern Memory mem;
-extern HANDLE g_hPrivateCommunicationPipe;
+extern HANDLE g_hProcessCommunicationPipe;
 
 typedef VOID (*t_RtlInitUnicodeString)(
 	PUNICODE_STRING DestinationString,
@@ -164,7 +164,7 @@ namespace Hooks
 		BOOL result = create_process_w(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, true, suspendedCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 		LOGW(L"NEW PROCESS STARTED SUSPENDED %s %s with PID: %u and main TID: %u\n", lpApplicationName, lpCommandLine, lpProcessInformation->dwProcessId, lpProcessInformation->dwThreadId);
 		NewProcessCommand newProcessCommand = NewProcessCommand(lpProcessInformation->dwProcessId, lpProcessInformation->dwThreadId);
-		if (!WriteFile(g_hPrivateCommunicationPipe, newProcessCommand.build().serialized, strlen(newProcessCommand.build().serialized), NULL, NULL)) {
+		if (!WriteFile(g_hProcessCommunicationPipe, newProcessCommand.build().serialized, strlen(newProcessCommand.build().serialized), NULL, NULL)) {
 			LOG("Could not write to private communication pipe\n");
 		}
 		LOG("Sent NEW_PROCESS command to ProxyLoader\n");

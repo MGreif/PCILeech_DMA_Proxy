@@ -6,6 +6,6 @@
 #include <Windows.h>
 #endif
 
-bool CreateRemoteThreadEx_LLAInjection(HANDLE hProcess, char dll_path[]);
+bool CreateRemoteThreadEx_LLAInjection(HANDLE hProcess, char dll_path[], HANDLE* hThread);
 
 #endif

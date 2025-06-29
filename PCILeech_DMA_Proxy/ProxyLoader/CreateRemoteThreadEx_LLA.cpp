@@ -6,7 +6,7 @@
 typedef bool (*_LoadLibraryA)(char*);
 
 
-bool CreateRemoteThreadEx_LLAInjection(HANDLE hProcess, char dll_path[]) {
+bool CreateRemoteThreadEx_LLAInjection(HANDLE hProcess, char dll_path[], HANDLE* hThread) {
     debug("Starting LoadLibraryA Injection ...\n");
 
     void* pDllPath = VirtualAllocEx(hProcess, NULL, strlen(dll_path), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -37,19 +37,14 @@ bool CreateRemoteThreadEx_LLAInjection(HANDLE hProcess, char dll_path[]) {
 
     HANDLE pThread = CreateRemoteThreadEx(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)pLLA, pDllPath, NULL, NULL, NULL);
 
+    *hThread = pThread;
+
     if (!pThread) {
         error("Could not create thread");
         return FALSE;
     }
 
     debug("Thread started: %d at address 0x%p with arguments at 0x%p\n", pThread, pLLA, pDllPath);
-
-    CONTEXT cThread = { sizeof(CONTEXT) };
-
-    if (!GetThreadContext(pThread, &cThread)) {
-        error("Could not get thread context\n");
-        return FALSE;
-    }
 
     int thread_id = GetThreadId(pThread);
 

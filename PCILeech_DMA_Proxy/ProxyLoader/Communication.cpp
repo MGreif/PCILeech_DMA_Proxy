@@ -8,12 +8,6 @@ ECommandType parseType(char* buffer) {
     if (strncmp(buffer, COMMAND_CONNECTED_LITERAL, strlen(COMMAND_CONNECTED_LITERAL)) == 0) {
         return ECommandType::CONNECTED;
     }
-    else if (strncmp(buffer, COMMAND_PASS_HANDLE_LITERAL, strlen(COMMAND_PASS_HANDLE_LITERAL)) == 0) {
-        return ECommandType::PASS_HANDLE;
-    }
-    else if (strncmp(buffer, COMMAND_SEND_HANDLE_LITERAL, strlen(COMMAND_SEND_HANDLE_LITERAL)) == 0) {
-        return ECommandType::SEND_HANDLE;
-    }
     else if (strncmp(buffer, COMMAND_FINISH_SETUP_LITERAL, strlen(COMMAND_FINISH_SETUP_LITERAL)) == 0) {
         return ECommandType::FINISH_SETUP;
     }
@@ -48,15 +42,6 @@ bool handleNoHooking(CommandPayload* payload, OUT_REPLACED Command** command) {
 
 bool handleReadyForResume(CommandPayload* payload, OUT_REPLACED Command** command) {
     *command = new ReadyForResumeCommand();
-    return true;
-}
-
-bool handlePassHandle(CommandPayload* payload, OUT_REPLACED Command** command) {
-    *command = new PassHandleCommand((HANDLE)strtoull(*(char**)payload->content, nullptr, 10));
-    return true;
-}
-bool handleSendHandle(CommandPayload* payload, OUT_REPLACED Command** command) {
-    *command = new SendHandleCommand((HANDLE)strtoull(*(char**)payload->content, nullptr, 10));
     return true;
 }
 
@@ -118,14 +103,6 @@ bool parseCommand(char* buffer, OUT_REPLACED Command** command) {
     }
     case NEW_PROCESS: {
         if (!handleNewProcess((CommandPayload*)&thirdChunk, command)) return false;
-        break;
-    }
-    case PASS_HANDLE: {
-        if (!handlePassHandle((CommandPayload*)&thirdChunk, command)) return false;
-        break;
-    }
-    case SEND_HANDLE: {
-        if (!handleSendHandle((CommandPayload*)&thirdChunk, command)) return false;
         break;
     }
     }

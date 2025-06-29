@@ -12,13 +12,12 @@
 #define NO_DATA_TIMEOUT_SECONDS 10
 #define DISABLE_TIMEOUT true
 
-#define PIPE_NAME "\\\\.\\pipe\\DMA_PROXY"
-
-HANDLE g_hCommunicationPipe = INVALID_HANDLE_VALUE;
 Options g_Options = { 0 };
 extern ProcessPool g_ProcessPool;
 char* g_dllPath = nullptr;
-extern std::vector<PrivateCommunicationChannel*> g_PrivateCommunicationChannels;
+extern std::vector<ProcessCommunicationChannel*> g_ProcessCommunicationChannels;
+HANDLE hInjectionThread = INVALID_HANDLE_VALUE;
+
 
 extern void startPrivateCommunicationThread();
 
@@ -141,7 +140,6 @@ BOOL WINAPI consoleHandler(DWORD signal) {
             CloseHandle(p->hMainThread);
             CloseHandle(p->hProcess);
         }
-        CloseHandle(g_hCommunicationPipe);
         VMMDLL_CloseAll();
     }
 
@@ -153,7 +151,6 @@ void cleanup() {
     if (proc.hProcess != INVALID_HANDLE_VALUE) TerminateProcess(proc.hProcess, 0);
     if (proc.hProcess != INVALID_HANDLE_VALUE) CloseHandle(proc.hProcess);
     if (proc.hReadPipe != INVALID_HANDLE_VALUE) CloseHandle(proc.hReadPipe);
-    if (g_hCommunicationPipe != INVALID_HANDLE_VALUE) CloseHandle(g_hCommunicationPipe);
     VMMDLL_CloseAll();
 }
 
@@ -217,8 +214,8 @@ int main(int argc, char** argv)
     g_ProcessPool.add(&newProcess);
 
     // Creating first communication channel for initial process
-    auto channel = PrivateCommunicationChannel();
-    g_PrivateCommunicationChannels.push_back(&channel);
+    auto channel = ProcessCommunicationChannel();
+    g_ProcessCommunicationChannels.push_back(&channel);
     newProcess.addCommunicationPartner(&channel);
     channel.pCarryingProcess = &newProcess;
 
@@ -239,12 +236,14 @@ int main(int argc, char** argv)
         "The DMA_Proxy DLL will load FTD3XX.dll, VMM.dll and leechcore.dll. Make sure they are accessible as well.\n",
         exe.c_str());
  
-    if (!CreateRemoteThreadEx_LLAInjection(proc.hProcess, g_dllPath)) {
+    if (!CreateRemoteThreadEx_LLAInjection(proc.hProcess, g_dllPath, &hInjectionThread)) {
         error("Could not inject thread\n");
         cleanup();
         exit(1);
     }
 
+    //WaitForSingleObject(hInjectionThread, INFINITE);
+    communication.join();
     outputDisplay.join();
     info("output listener finished, cleaning up...\n");
     cleanup();
