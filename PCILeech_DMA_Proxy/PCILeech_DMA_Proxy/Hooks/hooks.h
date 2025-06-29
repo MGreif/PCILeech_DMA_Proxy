@@ -152,7 +152,9 @@ namespace Hooks
 	typedef BOOL(WINAPI* tVirtualProtectEx)(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect);
 	typedef HANDLE(WINAPI* tCreateToolhelp32Snapshot)(DWORD, DWORD);
 	typedef BOOL(WINAPI* tProcess32First)(HANDLE, LPPROCESSENTRY32);
+	typedef BOOL(WINAPI* tProcess32FirstW)(HANDLE, LPPROCESSENTRY32W);
 	typedef BOOL(WINAPI* tProcess32Next)(HANDLE, LPPROCESSENTRY32);
+	typedef BOOL(WINAPI* tProcess32NextW)(HANDLE, LPPROCESSENTRY32W);
 	typedef BOOL(WINAPI* tModule32First)(HANDLE, LPMODULEENTRY32);
 	typedef BOOL(WINAPI* tModule32Next)(HANDLE, LPMODULEENTRY32);
 	typedef BOOL(WINAPI* tThread32First)(HANDLE, LPTHREADENTRY32);
@@ -170,7 +172,9 @@ namespace Hooks
 	inline tCreateToolhelp32Snapshot create_tool_help32;
 	inline tCreateToolhelp32Snapshot nt_query_system_information;
 	inline tProcess32First process_32_first;
+	inline tProcess32FirstW process_32_first_w;
 	inline tProcess32Next process_32_next;
+	inline tProcess32NextW process_32_next_w;
 	inline tModule32First module_32_first;
 	inline tModule32Next module_32_next;
 	inline tThread32First thread_32_first;

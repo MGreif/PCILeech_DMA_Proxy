@@ -194,6 +194,7 @@ namespace Hooks
 		info = NULL;
 		LOG("[Process32FirstHook] Called with snapshot: %u\n", hSnapshot);
 		count_processes = 0;
+		current_process = 0;
 		if (!VMMDLL_ProcessGetInformationAll(mem.vHandle, &info, &count_processes)) {
 			LOG("[Process32FirstHook] Could not get VMDLL_ProcessGetInformationAll\n");
 			LOG("Error: %u\n", GetLastError());

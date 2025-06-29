@@ -94,7 +94,9 @@ void printFunctionPointers() {
         LOG("CreateProcessA: 0x%p\n", Hooks::create_process_a);
         LOG("CreateToolhelp32Snapshot: 0x%p\n", Hooks::create_tool_help32);
         LOG("Process32First: 0x%p\n", Hooks::process_32_first);
+        LOG("Process32FirstW: 0x%p\n", Hooks::process_32_first_w);
         LOG("Process32Next: 0x%p\n", Hooks::process_32_next);
+        LOG("Process32NextW: 0x%p\n", Hooks::process_32_next_w);
     }
 
     if (g_Configuration.hookModules) {
@@ -258,13 +260,25 @@ HOOKING:
         //    exit(1);
         //} // commented out for now
 
-        if (MH_CreateHookApi(L"kernel32.dll", "Process32FirstW", &Hooks::hk_process_32_firstW, (LPVOID*)&Hooks::process_32_first) != MH_OK) {
+
+        if (MH_CreateHookApi(L"kernel32.dll", "Process32First", &Hooks::hk_process_32_first, (LPVOID*)&Hooks::process_32_first) != MH_OK) {
+            LOG("[!] Could not initialize Process32First");
+            VMMDLL_Close(mem.vHandle);
+            exit(1);
+        }
+
+        if (MH_CreateHookApi(L"kernel32.dll", "Process32FirstW", &Hooks::hk_process_32_firstW, (LPVOID*)&Hooks::process_32_first_w) != MH_OK) {
             LOG("[!] Could not initialize Process32FirstW");
             VMMDLL_Close(mem.vHandle);
             exit(1);
         }
-        if (MH_CreateHookApi(L"kernel32.dll", "Process32NextW", &Hooks::hk_process_32_nextW, (LPVOID*)&Hooks::process_32_next) != MH_OK) {
+        if (MH_CreateHookApi(L"kernel32.dll", "Process32Next", &Hooks::hk_process_32_next, (LPVOID*)&Hooks::process_32_next) != MH_OK) {
             LOG("[!] Could not initialize Process32Next");
+            VMMDLL_Close(mem.vHandle);
+            exit(1);
+        }
+        if (MH_CreateHookApi(L"kernel32.dll", "Process32NextW", &Hooks::hk_process_32_nextW, (LPVOID*)&Hooks::process_32_next_w) != MH_OK) {
+            LOG("[!] Could not initialize Process32NextW");
             VMMDLL_Close(mem.vHandle);
             exit(1);
         }
